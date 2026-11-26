@@ -159,14 +159,6 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
                 "mae_away": float(np.abs(gm["xg_a"].to_numpy()[test] - ag[test]).mean()),
                 "rho": goals.rho}
 
-    # Betting sanity check on best available prices
-    best_odds = matches[["max_h", "max_d", "max_a"]].to_numpy()
-    bm = test & np.isfinite(best_odds).all(1)
-    betting = {f"edge_{e:.2f}": M.betting_backtest(pred["final"][bm], best_odds[bm], y[bm], e)
-               for e in (0.02, 0.05, 0.10)}
-    betting["fundamentals_edge_0.05"] = M.betting_backtest(
-        pred["fundamentals"][bm], best_odds[bm], y[bm], 0.05)
-
     calib = {name: {c: M.calibration_curve(P[tm], y[tm], k) for k, c in enumerate("HDA")}
              for name, P in [("production", pred["final"]), ("fundamentals", pred["fundamentals"]),
                              ("market", P_mkt)]}
@@ -193,6 +185,7 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     test_pred[["xg_h", "xg_a", "p_over25", "p_btts"]] = gm.loc[test, ["xg_h", "xg_a", "p_over25",
                                                                        "p_btts"]].to_numpy()
     test_pred.to_parquet(out_dir / "test_predictions.parquet", index=False)
+    betting = M.betting_report(test_pred)
 
     metrics = {
         "data": {"matches_total": int(len(matches)), "teams": len(teams),

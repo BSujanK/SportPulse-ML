@@ -178,6 +178,11 @@ ATTR_GROUPS = {
 LINES = {"CB": "CB", "LB": "FB", "RB": "FB", "LWB": "FB", "RWB": "FB", "CDM": "DM", "CM": "CM",
          "CAM": "AM", "LM": "WM", "RM": "WM", "LW": "W", "RW": "W", "LF": "W", "RF": "W",
          "ST": "ST", "CF": "ST"}
+HYBRIDS = {frozenset({"CB", "DM"}): "Defensive Anchor",
+           frozenset({"CB", "FB"}): "Versatile Defender",
+           frozenset({"AM", "WM", "CM"}): "Creative Midfielder",
+           frozenset({"AM", "CM"}): "Creative Midfielder",
+           frozenset({"ST", "W"}): "Versatile Forward"}
 # (line) -> ordered {distinguishing trait: role name}; first entry is the default role.
 NAMES = {
     "CB": {"_": "Centre-Back", "aerial": "Aerial Centre-Back", "defending": "Stopper Centre-Back",
@@ -189,12 +194,14 @@ NAMES = {
            "creation": "Deep-Lying Playmaker", "aerial": "Anchor Midfielder"},
     "CM": {"_": "Central Midfielder", "engine": "Box-to-Box Midfielder",
            "creation": "Deep-Lying Playmaker", "long_shots": "Goal-Threat Midfielder",
-           "defending": "Ball-Winning Midfielder", "dribbling": "Advanced Playmaker"},
+           "defending": "Ball-Winning Midfielder", "dribbling": "Advanced Playmaker",
+           "pace": "Dynamic Midfielder"},
     "AM": {"_": "Attacking Midfielder", "creation": "Advanced Playmaker",
            "dribbling": "Creative Dribbler", "finishing": "Shadow Striker",
-           "long_shots": "Shadow Striker"},
+           "long_shots": "Shadow Striker", "engine": "Pressing Attacking Midfielder"},
     "WM": {"_": "Wide Midfielder", "crossing": "Wide Midfielder", "pace": "Wide Runner",
-           "dribbling": "Wide Playmaker", "creation": "Wide Playmaker"},
+           "dribbling": "Wide Playmaker", "creation": "Wide Playmaker",
+           "defending": "Defensive Wide Midfielder", "engine": "Wide Workhorse"},
     "W": {"_": "Winger", "dribbling": "Inside Forward", "pace": "Pace Winger",
           "crossing": "Classic Winger", "finishing": "Inside Forward", "long_shots": "Inside Forward"},
     "ST": {"_": "Striker", "aerial": "Target Forward", "finishing": "Poacher",
@@ -249,15 +256,25 @@ class ArchetypeModel:
             m = labels == c
             lines = pd.Series(line[m]).value_counts(normalize=True)
             dom = lines.index[0]
-            distinct = (traits[m].mean() - line_mean.loc[dom]).sort_values(ascending=False)
-            roles = NAMES[dom]
+            # Compare with the cluster's own positional mix, not just the dominant line.
+            mix = lines[lines >= 0.2]
+            ref = (line_mean.loc[mix.index].T * (mix / mix.sum())).T.sum()
+            distinct = (traits[m].mean() - ref).sort_values(ascending=False)
             name = None
-            for tr in distinct.index:
-                cand = roles.get(tr)
-                if cand and cand not in used:
-                    name = cand
+            # Positional hybrids (several lines >= 20%) get a hybrid role name.
+            hybrid = HYBRIDS.get(frozenset(mix.index)) if len(mix) >= 2 else None
+            if hybrid and hybrid not in used:
+                name = hybrid
+            for tr in ([] if name else distinct.index[:3]):  # only genuinely distinguishing traits
+                for ln in mix.index:                 # lines that make up >=20% of the cluster
+                    cand = NAMES[ln].get(tr)
+                    if cand and cand not in used:
+                        name = cand
+                        break
+                if name:
                     break
             if name is None:
+                roles = NAMES[dom]
                 name = roles["_"] if roles["_"] not in used else f"{roles['_']} · {distinct.index[0].replace('_', ' ')}"
             n = 2
             base = name

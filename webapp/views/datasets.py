@@ -43,7 +43,7 @@ if ds.startswith("club"):
                    tag_items=[("task", "Tabular Classification"), ("task", "Time-series Forecasting"),
                               ("", "csv"), ("", f"{d['matches_total']:,} rows"), ("", f"{d['divisions']} leagues"),
                               ("lic", "football-data.co.uk terms")])
-    df = state.recent_matches()
+    df = state.recent_matches().sort_values("date", ascending=False)
     split = f"recent ({df.date.min():%Y-%m} → {df.date.max():%Y-%m}, {len(df):,} rows)"
     card = f"""
 **Source.** [xgabora/Club-Football-Match-Data-2000-2025](https://github.com/xgabora/Club-Football-Match-Data-2000-2025),

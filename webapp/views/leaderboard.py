@@ -76,14 +76,21 @@ with t4:
     c1, c2 = st.columns(2)
     with c1:
         ui.section("Value-betting simulation")
-        bt = pd.DataFrame([{"strategy": k, **v} for k, v in mm["betting_backtest"].items()])
+        bt = pd.DataFrame(mm["betting_backtest"])
         bt["roi"] *= 100
-        st.dataframe(bt, hide_index=True, use_container_width=True,
-                     column_config={"roi": st.column_config.NumberColumn("ROI %", format="%.2f"),
-                                    "profit_units": st.column_config.NumberColumn("Profit (units)", format="%.1f")})
-        ui.note("Flat 1-unit stakes on the best price across bookmakers whenever the model's expected value "
-                "exceeds the edge threshold. This is a stringent test of whether the model knows something "
-                "the market price doesn't. Treat results as research, not betting advice.")
+        bt["roi_se"] *= 100
+        st.dataframe(bt[["prices", "model", "edge", "bets", "profit_units", "roi", "roi_se", "z"]],
+                     hide_index=True, use_container_width=True,
+                     column_config={"edge": st.column_config.NumberColumn("EV edge >", format="percent"),
+                                    "roi": st.column_config.NumberColumn("ROI %", format="%+.2f"),
+                                    "roi_se": st.column_config.NumberColumn("± s.e. %", format="%.2f"),
+                                    "z": st.column_config.NumberColumn("z", format="%+.2f"),
+                                    "profit_units": st.column_config.NumberColumn("Profit (units)", format="%+.1f")})
+        ui.note("Flat 1-unit stakes whenever expected value exceeds the edge threshold. The <b>market control</b> "
+                "bets the de-vigged market probabilities themselves at best prices and loses, so the model's "
+                "small positive ROI is not just line-shopping. With |z| &lt; 2, though, <b>no edge is statistically "
+                "significant</b>: the honest conclusion is that the model matches, and marginally improves on, an efficient "
+                "market. Research only, not betting advice.")
     with c2:
         ui.section("Over / Under 2.5 goals")
         ou = mm["over_under_25"]

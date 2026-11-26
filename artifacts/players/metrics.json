@@ -1,0 +1,496 @@
+{
+  "data": {
+    "player_seasons": 142079,
+    "players": 45629,
+    "editions": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022
+    ]
+  },
+  "value": {
+    "model": {
+      "mae": 0.021385751839332254,
+      "rmse": 0.0317172293457088,
+      "r2": 0.999335364002656,
+      "n": 19165,
+      "median_ape": 0.01594846033436964,
+      "within_10pct": 0.9893034176884946,
+      "within_25pct": 0.9991651447951996,
+      "iters": 11822
+    },
+    "model_all_editions": {
+      "mae": 0.02393867965776634,
+      "rmse": 0.04297501432064703,
+      "r2": 0.999033595779339,
+      "n": 140182,
+      "median_ape": 0.017809348785705805,
+      "within_10pct": 0.9869455422236807,
+      "within_25pct": 0.9982522720463397
+    },
+    "baseline_linear_log": {
+      "mae": 0.1828577523732119,
+      "rmse": 0.2436196507079597,
+      "r2": 0.9607880891448922,
+      "n": 19165,
+      "median_ape": 0.1506355967206441,
+      "within_10pct": 0.3406209235585703,
+      "within_25pct": 0.7624315157839812
+    },
+    "stress_forward_edition": {
+      "mae": 0.409673814619736,
+      "rmse": 0.46417413111196565,
+      "r2": 0.8576507312462779,
+      "n": 19165,
+      "median_ape": 0.32056190188503425,
+      "within_10pct": 0.06537959822593269,
+      "within_25pct": 0.28943386381424474
+    },
+    "split": "5-fold GroupKFold by player (all editions); scores on FIFA22 rows",
+    "top_features": {
+      "overall": 0.6346,
+      "potential": 0.1611,
+      "movement_reactions": 0.0594,
+      "age": 0.05,
+      "edition": 0.0354,
+      "pot_gap": 0.0163,
+      "skill_ball_control": 0.0125,
+      "mentality_composure": 0.0066,
+      "dribbling": 0.0049,
+      "main_position": 0.0032,
+      "defending": 0.0031,
+      "skill_dribbling": 0.0016,
+      "league_name": 0.0015,
+      "shooting": 0.0011,
+      "pace": 0.001
+    }
+  },
+  "development": {
+    "model": {
+      "mae": 1.590895307268931,
+      "rmse": 2.2140566591457063,
+      "r2": 0.8749211049922117,
+      "n": 13198,
+      "interval_80_coverage": 0.8654341566904077
+    },
+    "model_u23": {
+      "mae": 1.9982351309029285,
+      "rmse": 2.743846050870558,
+      "r2": 0.8129984666054265,
+      "n": 5252
+    },
+    "baseline_persistence": {
+      "mae": 1.8054250644036975,
+      "rmse": 2.724702485944967,
+      "r2": 0.8105717484361675,
+      "n": 13198
+    },
+    "baseline_persistence_u23": {
+      "mae": 2.4821020563594822,
+      "rmse": 3.5942854703891314,
+      "r2": 0.6791139621331492,
+      "n": 5252
+    },
+    "baseline_potential_pull": {
+      "mae": 1.7644746115228165,
+      "rmse": 2.315808032354114,
+      "r2": 0.8631604344643532,
+      "n": 13198
+    },
+    "split": "train pairs 15->16..19->20, early-stop 20->21, test 21->22"
+  },
+  "archetypes": {
+    "k": 11,
+    "bic": {
+      "6": 577094.4831837837,
+      "7": 575621.6429443249,
+      "8": 575038.9214609826,
+      "9": 574788.4006557462,
+      "10": 575206.146549596,
+      "11": 574011.3244128776,
+      "12": 574237.6285298868,
+      "13": 574399.2240679597,
+      "14": 574771.0754969444
+    },
+    "names": {
+      "1": "Box-to-Box Midfielder",
+      "2": "Wide Playmaker",
+      "8": "Inverted Full-Back",
+      "6": "Channel Runner",
+      "7": "Ball-Playing Centre-Back",
+      "5": "Creative Midfielder",
+      "10": "Dynamic Midfielder",
+      "9": "Defensive Anchor",
+      "4": "Target Forward",
+      "3": "Recovery Centre-Back",
+      "0": "Attacking Wing-Back"
+    },
+    "sizes": {
+      "Box-to-Box Midfielder": 2414,
+      "Wide Playmaker": 2227,
+      "Inverted Full-Back": 2181,
+      "Channel Runner": 1966,
+      "Ball-Playing Centre-Back": 1725,
+      "Creative Midfielder": 1594,
+      "Dynamic Midfielder": 1442,
+      "Defensive Anchor": 1056,
+      "Target Forward": 964,
+      "Recovery Centre-Back": 860,
+      "Attacking Wing-Back": 678
+    },
+    "profiles": {
+      "Box-to-Box Midfielder": {
+        "traits": {
+          "finishing": -0.123,
+          "aerial": -0.355,
+          "pace": -0.726,
+          "dribbling": -0.239,
+          "creation": 0.287,
+          "crossing": -0.157,
+          "defending": 0.425,
+          "engine": 0.308,
+          "long_shots": 0.16
+        },
+        "distinguishing": {
+          "engine": 0.156,
+          "crossing": 0.087,
+          "long_shots": 0.069
+        },
+        "position_mix": {
+          "MID": 0.86,
+          "DEF": 0.133,
+          "FWD": 0.007
+        },
+        "line_mix": {
+          "CM": 0.432,
+          "DM": 0.367,
+          "FB": 0.086,
+          "CB": 0.047,
+          "WM": 0.035,
+          "AM": 0.027,
+          "W": 0.005,
+          "ST": 0.001
+        },
+        "size": 2414
+      },
+      "Wide Playmaker": {
+        "traits": {
+          "finishing": 0.693,
+          "aerial": -0.759,
+          "pace": 0.839,
+          "dribbling": 0.873,
+          "creation": 0.357,
+          "crossing": 0.793,
+          "defending": -0.98,
+          "engine": -0.735,
+          "long_shots": 0.531
+        },
+        "distinguishing": {
+          "dribbling": 0.174,
+          "creation": 0.104,
+          "pace": 0.092
+        },
+        "position_mix": {
+          "MID": 0.643,
+          "FWD": 0.348,
+          "DEF": 0.008
+        },
+        "line_mix": {
+          "WM": 0.479,
+          "W": 0.264,
+          "AM": 0.15,
+          "ST": 0.084,
+          "CM": 0.015,
+          "FB": 0.008
+        },
+        "size": 2227
+      },
+      "Inverted Full-Back": {
+        "traits": {
+          "finishing": -0.484,
+          "aerial": -0.163,
+          "pace": 0.298,
+          "dribbling": -0.051,
+          "creation": -0.216,
+          "crossing": 0.827,
+          "defending": 0.571,
+          "engine": 0.296,
+          "long_shots": -0.585
+        },
+        "distinguishing": {
+          "creation": 0.143,
+          "long_shots": 0.116,
+          "finishing": 0.031
+        },
+        "position_mix": {
+          "DEF": 0.917,
+          "MID": 0.077,
+          "FWD": 0.006
+        },
+        "line_mix": {
+          "FB": 0.858,
+          "CB": 0.06,
+          "WM": 0.048,
+          "DM": 0.022,
+          "CM": 0.007,
+          "W": 0.006,
+          "AM": 0.0
+        },
+        "size": 2181
+      },
+      "Channel Runner": {
+        "traits": {
+          "finishing": 1.138,
+          "aerial": 0.421,
+          "pace": 0.469,
+          "dribbling": 0.353,
+          "creation": -0.219,
+          "crossing": -0.349,
+          "defending": -1.417,
+          "engine": -0.257,
+          "long_shots": 0.872
+        },
+        "distinguishing": {
+          "pace": 0.232,
+          "crossing": 0.167,
+          "dribbling": 0.084
+        },
+        "position_mix": {
+          "FWD": 0.868,
+          "MID": 0.132
+        },
+        "line_mix": {
+          "ST": 0.814,
+          "WM": 0.105,
+          "W": 0.054,
+          "AM": 0.027
+        },
+        "size": 1966
+      },
+      "Ball-Playing Centre-Back": {
+        "traits": {
+          "finishing": -1.224,
+          "aerial": 1.067,
+          "pace": -0.366,
+          "dribbling": -0.704,
+          "creation": -0.302,
+          "crossing": -0.77,
+          "defending": 1.101,
+          "engine": 0.696,
+          "long_shots": -0.974
+        },
+        "distinguishing": {
+          "dribbling": 0.145,
+          "creation": 0.144,
+          "crossing": 0.101
+        },
+        "position_mix": {
+          "DEF": 0.939,
+          "MID": 0.061
+        },
+        "line_mix": {
+          "CB": 0.89,
+          "DM": 0.06,
+          "FB": 0.048,
+          "WM": 0.001,
+          "CM": 0.001
+        },
+        "size": 1725
+      },
+      "Creative Midfielder": {
+        "traits": {
+          "finishing": 0.519,
+          "aerial": -0.922,
+          "pace": -0.299,
+          "dribbling": 0.257,
+          "creation": 0.579,
+          "crossing": 0.596,
+          "defending": -0.434,
+          "engine": -0.515,
+          "long_shots": 0.553
+        },
+        "distinguishing": {
+          "crossing": 0.233,
+          "long_shots": 0.183,
+          "finishing": 0.117
+        },
+        "position_mix": {
+          "MID": 0.806,
+          "FWD": 0.148,
+          "DEF": 0.046
+        },
+        "line_mix": {
+          "AM": 0.265,
+          "WM": 0.258,
+          "CM": 0.247,
+          "W": 0.094,
+          "ST": 0.054,
+          "FB": 0.043,
+          "DM": 0.036,
+          "CB": 0.003
+        },
+        "size": 1594
+      },
+      "Dynamic Midfielder": {
+        "traits": {
+          "finishing": -0.121,
+          "aerial": -0.395,
+          "pace": 0.043,
+          "dribbling": 0.245,
+          "creation": 0.511,
+          "crossing": -0.264,
+          "defending": 0.158,
+          "engine": -0.309,
+          "long_shots": -0.087
+        },
+        "distinguishing": {
+          "pace": 0.676,
+          "dribbling": 0.347,
+          "creation": 0.069
+        },
+        "position_mix": {
+          "MID": 0.91,
+          "DEF": 0.064,
+          "FWD": 0.026
+        },
+        "line_mix": {
+          "CM": 0.439,
+          "DM": 0.222,
+          "AM": 0.173,
+          "WM": 0.076,
+          "FB": 0.04,
+          "CB": 0.025,
+          "W": 0.017,
+          "ST": 0.009
+        },
+        "size": 1442
+      },
+      "Defensive Anchor": {
+        "traits": {
+          "finishing": -0.8,
+          "aerial": 0.48,
+          "pace": -1.141,
+          "dribbling": -0.907,
+          "creation": -0.065,
+          "crossing": -0.478,
+          "defending": 0.983,
+          "engine": 0.346,
+          "long_shots": -0.175
+        },
+        "distinguishing": {
+          "long_shots": 0.445,
+          "crossing": 0.263,
+          "creation": 0.178
+        },
+        "position_mix": {
+          "DEF": 0.705,
+          "MID": 0.292,
+          "FWD": 0.004
+        },
+        "line_mix": {
+          "CB": 0.589,
+          "DM": 0.23,
+          "FB": 0.116,
+          "CM": 0.05,
+          "WM": 0.009,
+          "AM": 0.003,
+          "ST": 0.003,
+          "W": 0.001
+        },
+        "size": 1056
+      },
+      "Target Forward": {
+        "traits": {
+          "finishing": 1.362,
+          "aerial": 0.667,
+          "pace": -0.088,
+          "dribbling": 0.161,
+          "creation": -0.247,
+          "crossing": -0.635,
+          "defending": -1.354,
+          "engine": -0.38,
+          "long_shots": 1.083
+        },
+        "distinguishing": {
+          "aerial": 0.192,
+          "finishing": 0.134,
+          "long_shots": 0.133
+        },
+        "position_mix": {
+          "FWD": 0.926,
+          "MID": 0.074
+        },
+        "line_mix": {
+          "ST": 0.889,
+          "WM": 0.047,
+          "W": 0.037,
+          "AM": 0.027
+        },
+        "size": 964
+      },
+      "Recovery Centre-Back": {
+        "traits": {
+          "finishing": -1.129,
+          "aerial": 1.219,
+          "pace": 0.161,
+          "dribbling": -0.925,
+          "creation": -0.925,
+          "crossing": -1.349,
+          "defending": 1.158,
+          "engine": 0.655,
+          "long_shots": -1.126
+        },
+        "distinguishing": {
+          "pace": 0.571,
+          "aerial": 0.182,
+          "engine": 0.059
+        },
+        "position_mix": {
+          "DEF": 0.997,
+          "MID": 0.003
+        },
+        "line_mix": {
+          "CB": 0.984,
+          "FB": 0.013,
+          "DM": 0.003
+        },
+        "size": 860
+      },
+      "Attacking Wing-Back": {
+        "traits": {
+          "finishing": -0.686,
+          "aerial": 0.111,
+          "pace": 0.751,
+          "dribbling": 0.148,
+          "creation": -0.919,
+          "crossing": 0.782,
+          "defending": 0.784,
+          "engine": 0.376,
+          "long_shots": -1.435
+        },
+        "distinguishing": {
+          "pace": 0.408,
+          "aerial": 0.246,
+          "dribbling": 0.176
+        },
+        "position_mix": {
+          "DEF": 0.985,
+          "MID": 0.015
+        },
+        "line_mix": {
+          "FB": 0.912,
+          "CB": 0.074,
+          "WM": 0.009,
+          "DM": 0.006
+        },
+        "size": 678
+      }
+    }
+  },
+  "runtime_sec": 667.8
+}

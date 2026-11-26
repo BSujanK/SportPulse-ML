@@ -29,8 +29,11 @@ with t_scout:
     with left:
         with st.container(border=True):
             a, b = st.columns([1, 3])
-            if isinstance(p.player_face_url, str):
-                a.image(p.player_face_url, width=110)
+            initials = "".join(w[0] for w in str(p.short_name).replace(".", " ").split()[:2]).upper()
+            a.markdown(f'<div style="width:96px;height:96px;border-radius:18px;display:flex;align-items:center;'
+                       f'justify-content:center;font-size:2rem;font-weight:800;color:#000;'
+                       f'background:linear-gradient(135deg,{ui.ORANGE},#9D0208)">{ui.esc(initials)}</div>',
+                       unsafe_allow_html=True)
             b.markdown(f"### {ui.esc(p.short_name)}")
             b.markdown(ui.tags([("task", p.archetype), ("", p.player_positions), ("", p.club_name or "—"),
                                 ("", p.league_name or "—"), ("", p.nationality_name),
@@ -72,9 +75,9 @@ with t_scout:
             emb = state.player_embedding()
             mask = (df.age <= max_age).to_numpy()
             if same_pos:
-                mask &= (df.position_group == p.position_group).to_numpy()
+                mask = mask & (df.position_group == p.position_group).to_numpy()
             if cheaper and p.value_eur == p.value_eur:
-                mask &= (df.value_eur < p.value_eur).to_numpy()
+                mask = mask & (df.value_eur < p.value_eur).to_numpy()
             order, sims = similar_players(emb, df.index.get_loc(idx), top=10, mask=mask)
             sim = df.iloc[order][["short_name", "age", "club_name", "overall", "value_eur", "archetype"]].copy()
             sim.insert(0, "sim", sims)

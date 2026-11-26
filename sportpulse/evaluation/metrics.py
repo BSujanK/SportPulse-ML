@@ -89,7 +89,26 @@ def betting_backtest(p_model: np.ndarray, odds: np.ndarray, y: np.ndarray,
     ev = np.where(ok, ev, -np.inf)
     best = ev.argmax(1)
     take = ev[np.arange(len(y)), best] > edge
-    stake = take.sum()
-    ret = np.where(best[take] == y[take], odds[take, best[take]] - 1, -1.0).sum()
-    return {"bets": int(stake), "profit_units": float(ret),
-            "roi": float(ret / stake) if stake else 0.0}
+    stake = int(take.sum())
+    r = np.where(best[take] == y[take], odds[take, best[take]] - 1, -1.0)
+    se = float(r.std(ddof=1) / np.sqrt(stake)) if stake > 1 else float("nan")
+    return {"bets": stake, "profit_units": float(r.sum()),
+            "roi": float(r.mean()) if stake else 0.0, "roi_se": se,
+            "z": float(r.mean() / se) if stake > 1 and se > 0 else float("nan")}
+
+
+def betting_report(df) -> list[dict]:
+    """Backtest on saved out-of-sample predictions: model vs a market-self control,
+    at average and at best available prices, for several edge thresholds."""
+    y = df["result"].map({"H": 0, "D": 1, "A": 2}).to_numpy()
+    rows = []
+    for price, cols in [("average odds", ["odds_h", "odds_d", "odds_a"]),
+                        ("best odds", ["max_h", "max_d", "max_a"])]:
+        O = df[cols].to_numpy(float)
+        ok = np.isfinite(O).all(1)
+        for who, pc in [("SportPulse", ["p_h", "p_d", "p_a"]), ("Market (control)", ["pm_h", "pm_d", "pm_a"])]:
+            P = df[pc].to_numpy(float)
+            for e in (0.02, 0.05, 0.10):
+                rows.append({"prices": price, "model": who, "edge": e,
+                             **betting_backtest(P[ok], O[ok], y[ok], e)})
+    return rows
