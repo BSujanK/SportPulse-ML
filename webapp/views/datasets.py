@@ -67,7 +67,7 @@ elif ds.startswith("club"):
     card = f"""
 **Source.** [xgabora/Club-Football-Match-Data-2000-2025](https://github.com/xgabora/Club-Football-Match-Data-2000-2025),
 compiled from football-data.co.uk (results, match stats, odds) and clubelo.com, covering
-{d['first_date']} → **{d['last_date']}**.
+{pd.Timestamp(d['first_date']):%B %Y} to **{pd.Timestamp(d['last_date']):%-d %B %Y}**.
 
 **Cleaning applied by the pipeline.** Odds outside (1, 100] or with an implausible overround → NaN;
 negative or absurd stat counts → NaN; shots-on-target > shots → NaN; duplicate fixtures dropped; result
@@ -95,8 +95,9 @@ club and league.
 (used for development pairs and group-wise CV). Primary position is mapped to GK / DEF / MID / FWD and to
 positional lines. Contract years left = contract end − edition.
 
-**Model columns added to the viewer.** `fair_value_eur` (out-of-fold value model), `value_gap`,
-`proj_overall` / `proj_low` / `proj_high` (development model), `archetype`, `style_x` / `style_y` (GMM style space).
+**Model outputs added to the viewer.** Fair market value (out-of-fold value model) and the gap to the listed
+value; next-season rating with its 80% interval (development model); archetype and position in the
+style map (Gaussian mixture).
 """
 
 t_view, t_card = st.tabs([":material/table_view: Dataset viewer", ":material/description: Dataset card"])

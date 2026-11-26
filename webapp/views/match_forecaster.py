@@ -33,7 +33,8 @@ with right:
         c1, c2 = st.columns(2)
         home = c1.selectbox("Home", teams, index=0, format_func=name)
         away = c2.selectbox("Away", teams, index=min(1, len(teams) - 1), format_func=name)
-        use_odds = st.toggle("Add bookmaker odds (enables market-residual model)", value=False)
+        use_odds = st.toggle("Include bookmaker odds", value=False,
+                             help="Adds the de-vigged market prices and switches to the market-residual model.")
         odds = None
         if use_odds:
             o1, o2, o3 = st.columns(3)
@@ -54,34 +55,33 @@ with right:
             model_used = "market-residual" if odds else "fundamentals"
             st.markdown(ui.label_bars([(f"{r.home} win", p[0], ui.WIN), ("Draw", p[1], ui.DRAW),
                                        (f"{r.away} win", p[2], ui.LOSS)]), unsafe_allow_html=True)
-            st.caption(f"Model: `{model_used}` · fair odds "
+            st.caption(f"{'Market-residual model' if odds else 'No-odds model'} · fair odds "
                        f"{1 / p[0]:.2f} / {1 / p[1]:.2f} / {1 / p[2]:.2f}")
             if r.p_market is not None:
                 edge = p - r.p_market
                 st.caption("Model − market: " + " · ".join(
                     f"{k} {v * 100:+.1f}pp" for k, v in zip(["H", "D", "A"], edge)))
-            ui.kpi_row([ui.kpi("xG home", f"{r.xg_home:.2f}"), ui.kpi("xG away", f"{r.xg_away:.2f}"),
-                        ui.kpi("Over 2.5", f"{r.p_over25 * 100:.0f}", "%"),
-                        ui.kpi("BTTS", f"{r.p_btts * 100:.0f}", "%")])
+            ui.kpi_grid([ui.kpi(f"{r.home} xG", f"{r.xg_home:.2f}"), ui.kpi(f"{r.away} xG", f"{r.xg_away:.2f}"),
+                         ui.kpi("Over 2.5 goals", f"{r.p_over25 * 100:.0f}", "%"),
+                         ui.kpi("Both score", f"{r.p_btts * 100:.0f}", "%")], cols=2)
             S = r.scores[:6, :6]
             fig = go.Figure(go.Heatmap(z=S * 100, x=list(range(6)), y=list(range(6)),
                                        colorscale=[[0, "#111111"], [0.5, "#7a3300"], [1, ui.ORANGE]],
                                        text=np.round(S * 100, 1), texttemplate="%{text}",
                                        showscale=False, hovertemplate="%{y}-%{x}: %{z:.1f}%<extra></extra>"))
-            fig.update_layout(title=f"Scoreline probabilities (%) · {r.home} (rows) vs {r.away}",
+            fig.update_layout(title="Scoreline probability (%)",
                               xaxis_title=f"{r.away} goals", yaxis_title=f"{r.home} goals",
                               yaxis=dict(autorange="reversed"), height=330)
             ui.plot(fig)
             f = r.features
             ui.section("Model inputs", icon="activity")
             st.markdown(ui.kv([
-                ("Elo · home / away", f"{f['elo_h']:.0f} / {f['elo_a']:.0f}"),
-                ("pi-rating · home@home / away@away", f"{f['pi_h_home']:.2f} / {f['pi_a_away']:.2f}"),
-                ("pi expected goal difference", f"{f['pi_gd']:+.2f}"),
-                ("Form points per game · home / away", f"{f['h_s_pts']:.2f} / {f['a_s_pts']:.2f}"),
-                ("Form goal difference · home / away",
-                 f"{f['h_s_gf'] - f['h_s_ga']:+.2f} / {f['a_s_gf'] - f['a_s_ga']:+.2f}"),
-                ("Rest days · home / away", f"{f['rest_h']:.0f} / {f['rest_a']:.0f}")]), unsafe_allow_html=True)
+                ("Elo (home, away)", f"{f['elo_h']:.0f} · {f['elo_a']:.0f}"),
+                ("Pi-rating (home at home, away away)", f"{f['pi_h_home']:.2f} · {f['pi_a_away']:.2f}"),
+                ("Expected goal difference", f"{f['pi_gd']:+.2f}"),
+                ("Recent points per game", f"{f['h_s_pts']:.2f} · {f['a_s_pts']:.2f}"),
+                ("Recent goal difference", f"{f['h_s_gf'] - f['h_s_ga']:+.2f} · {f['a_s_gf'] - f['a_s_ga']:+.2f}"),
+                ("Rest days", f"{f['rest_h']:.0f} · {f['rest_a']:.0f}")]), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MODEL CARD / EVALUATION
@@ -94,22 +94,24 @@ with left:
         st.markdown(f"""
 ### Match outcome forecaster
 
-A three-stage probabilistic model for football match outcomes (home / draw / away),
+A probabilistic model for football match outcomes (home win, draw, away win),
 trained on **{d['matches_total']:,} real matches** from **{d['divisions']} leagues** played between
-{d['first_date']} and **{d['last_date']}**.
+{pd.Timestamp(d['first_date']):%B %Y} and **{pd.Timestamp(d['last_date']):%-d %B %Y}**.
 
-| Stage | Algorithm | Role |
+| Component | Method | Purpose |
 |---|---|---|
-| 1 · Fundamentals | LightGBM multiclass, Optuna-tuned | Ratings + form only. Used when no odds exist and as fallback prior |
-| 2 · Market residual | LightGBM boosted from `log p_market` (Shin de-vig) | Learns systematic corrections to bookmaker prices |
-| 3 · Calibration | Temperature scaling on 2023-24 | Keeps probabilities honest (ECE {prod['ece'] * 100:.2f}%) |
-| Goals | Poisson LightGBM × 2 + Dixon-Coles ρ = {mm['goals']['rho']:.3f} | Scorelines, O/U 2.5, BTTS, xG |
+| Fundamentals | LightGBM, Optuna-tuned | Ratings and form only; used when no odds are available |
+| Market residual | LightGBM boosted from the de-vigged market probabilities | Learns systematic corrections to bookmaker prices |
+| Calibration | Temperature scaling on the 2023-24 season | Keeps probabilities honest (calibration error {prod['ece'] * 100:.2f}%) |
+| Goals | Two Poisson LightGBMs with a Dixon-Coles adjustment (ρ = {mm['goals']['rho']:.3f}) | Scorelines, over/under 2.5, both teams to score, xG |
 
-**Evaluation protocol.** Strictly chronological. Train {mm['data']['train'][0]} → {mm['data']['train'][1]}
-({mm['data']['train'][2]:,} matches), validate on 2023-24 ({mm['data']['valid'][2]:,}), and **test on every match
-from {mm['data']['test'][0]} to {mm['data']['test'][1]} ({mm['data']['test'][2]:,})**. No test match is used for
-training, tuning, early stopping or calibration. After evaluation the model is refit on all
-{mm['production']['n_train']:,} matches for serving.
+#### Evaluation protocol
+Strictly chronological: no test match is used for training, tuning, early stopping or calibration.
+
+* **Training**: {pd.Timestamp(mm['data']['train'][0]):%b %Y} – {pd.Timestamp(mm['data']['train'][1]) - pd.Timedelta(days=1):%b %Y} · {mm['data']['train'][2]:,} matches
+* **Validation**: 2023-24 season · {mm['data']['valid'][2]:,} matches (tuning, early stopping, calibration)
+* **Test**: {pd.Timestamp(mm['data']['test'][0]):%b %Y} – {pd.Timestamp(mm['data']['test'][1]):%b %Y} · {mm['data']['test'][2]:,} matches, never seen in training
+* **Serving**: refit on all {mm['production']['n_train']:,} matches after evaluation
 
 #### Results on the held-out test window
 | Model | RPS ↓ | Log-loss ↓ | Brier ↓ | Accuracy ↑ |
@@ -181,11 +183,10 @@ training, tuning, early stopping or calibration. After evaluation the model is r
 
     with t_feat:
         imp = state.feature_importance().head(25)
-        fig = go.Figure(go.Bar(x=imp["fundamentals"], y=imp.index, orientation="h", marker_color=ui.ORANGE))
-        fig.update_layout(title="Fundamentals model: gain importance (top 25)",
+        fig = go.Figure(go.Bar(x=imp["fundamentals"], y=[ui.readable_feature(f) for f in imp.index], orientation="h",
+                               marker_color=ui.ORANGE, hovertemplate="%{y}: %{x:.1%}<extra></extra>"))
+        fig.update_layout(title="What drives the no-odds model (share of total gain, top 25)", xaxis_tickformat=".0%",
                           yaxis=dict(autorange="reversed"), height=620)
         ui.plot(fig)
-        ui.note("<b>Reading this:</b> <code>pi_gd</code> is the pi-rating expected goal difference; "
-                "<code>elo_*</code> are margin-of-victory Elo ratings; <code>d_l_*</code> / <code>d_s_*</code> "
-                "are long and short memory form differentials (goal difference, shots, shots on target, points). "
-                "<code>lg_*</code> is league context.")
+        ui.note("<b>Short form</b> covers roughly the last 8–10 matches, <b>long form</b> roughly the last 40–50. "
+                "Pi-ratings rate each team separately at home and away, on a goal-difference scale.")

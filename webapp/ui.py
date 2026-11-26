@@ -137,8 +137,9 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-step-t {{ font-weight:600; font-size:.9rem; }}
 .hf-step-c {{ color:{MUTED}; font-size:.78rem; margin-top:2px; line-height:1.4; }}
 .hf-step-arrow {{ display:flex; align-items:center; color:{DIM}; }}
-.hf-kv {{ display:grid; grid-template-columns: auto 1fr; gap:6px 14px; font-size:.84rem; }}
-.hf-kv .k {{ color:{MUTED}; }} .hf-kv .v {{ font-family:'IBM Plex Mono',monospace; color:{TEXT}; text-align:right; }}
+.hf-kv {{ display:grid; grid-template-columns: minmax(0,1fr) auto; gap:8px 16px; font-size:.84rem; align-items:baseline; }}
+.hf-kv .k {{ color:{MUTED}; min-width:0; }}
+.hf-kv .v {{ font-family:'IBM Plex Mono',monospace; color:{TEXT}; text-align:right; white-space:nowrap; }}
 .hf-bullets .b {{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid {BORDER};
   font-size:.88rem; line-height:1.45; }}
 .hf-bullets .b:last-child {{ border-bottom:none; }}
@@ -183,7 +184,7 @@ hr {{ border-color: {BORDER} !important; }}
   color:{TEXT} !important; }}
 [data-testid="stMarkdownContainer"] table {{ border-collapse:separate; border-spacing:0; width:100%; font-size:.86rem;
   border:1px solid {BORDER}; border-radius:10px; overflow:hidden; margin:.4rem 0 1rem 0; }}
-[data-testid="stMarkdownContainer"] th {{ background:{CARD_2}; color:{MUTED}; font-weight:600; text-align:left;
+[data-testid="stMarkdownContainer"] th {{ background:{CARD_2}; color:{MUTED}; font-weight:600; text-align:left; white-space:nowrap;
   padding:8px 12px !important; border-bottom:1px solid {BORDER} !important; border-top:none !important;
   border-left:none !important; border-right:none !important; }}
 [data-testid="stMarkdownContainer"] td {{ padding:7px 12px !important; border:none !important;
@@ -325,6 +326,47 @@ def kpi(label: str, value: str, unit: str = "", delta: str = "", tone: str = "")
     return (f'<div class="hf-kpi"><div class="k" title="{esc(label)}">{esc(label)}</div><div class="v">{esc(value)}'
             f'<span class="u">{esc(unit)}</span></div>'
             + f'<div class="d {tone}" title="{esc(delta)}">{esc(delta) or "&nbsp;"}</div>' + "</div>")
+
+
+def kpi_grid(items: list[str], cols: int = 2) -> None:
+    """KPI tiles wrapped into rows of `cols` (for narrow columns such as the inference widget)."""
+    for i in range(0, len(items), cols):
+        cs = st.columns(cols, gap="small")
+        for c, h in zip(cs, items[i:i + cols]):
+            c.markdown(h, unsafe_allow_html=True)
+
+
+_FEATURE_WORDS = {
+    "elo": "Elo", "pi": "pi-rating", "gd": "goal difference", "sot": "shots on target", "pts": "points",
+    "gf": "goals for", "ga": "goals against", "sf": "shots for", "sa": "shots against", "stf": "shots on target for",
+    "sta": "shots on target against", "cf": "corners for", "ca": "corners against", "lg": "league",
+    "hg": "home goals", "ag": "away goals", "hw": "home-win rate", "mkt": "market", "str": "strength",
+}
+
+
+def readable_feature(name: str) -> str:
+    """Turn engine feature ids into plain labels (pi_gd -> 'pi-rating expected goal difference')."""
+    special = {"pi_gd": "pi-rating expected goal difference", "elo_diff": "Elo difference (incl. home advantage)",
+               "elo_p_home": "Elo home-win probability", "elo_h": "Home Elo", "elo_a": "Away Elo",
+               "pi_h_home": "Home team pi-rating at home", "pi_a_away": "Away team pi-rating away",
+               "pi_h_away": "Home team pi-rating away", "pi_a_home": "Away team pi-rating at home",
+               "games_h": "Home team experience", "games_a": "Away team experience",
+               "rest_h": "Home rest days", "rest_a": "Away rest days", "division": "League", "tier": "League tier",
+               "month": "Month", "lg_n": "League sample size", "lg_hg": "League home goals per match",
+               "lg_ag": "League away goals per match", "lg_draw": "League draw rate", "lg_hw": "League home-win rate",
+               "xh_s": "Expected home goals (short form)", "xa_s": "Expected away goals (short form)",
+               "xh_l": "Expected home goals (long form)", "xa_l": "Expected away goals (long form)"}
+    if name in special:
+        return special[name]
+    parts = name.split("_")
+    gap = parts[0] == "d"
+    side = {"h": "Home", "a": "Away"}.get(parts[0], "")
+    memory = {"s": "short form", "l": "long form"}.get(parts[1] if len(parts) > 1 else "", "")
+    rest = [_FEATURE_WORDS.get(x, x) for x in parts[2:]] if memory else [_FEATURE_WORDS.get(x, x) for x in parts[1:]]
+    text = " ".join(w for w in ([side] + rest) if w)
+    if gap:
+        text = text[:1].upper() + text[1:] + " gap"
+    return f"{text} ({memory})" if memory else (text or name)
 
 
 def kpi_row(items: list[str]) -> None:

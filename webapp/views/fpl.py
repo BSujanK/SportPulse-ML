@@ -133,36 +133,42 @@ with t_eval:
                  column_config={k: st.column_config.NumberColumn(lbl, format="%.4f") for k, lbl in
                                 {"logloss": "Log-loss ↓", "logloss_prior": "Prior log-loss", "logloss_form": "Form log-loss",
                                  "brier": "Brier ↓", "auc": "AUC ↑", "base_rate": "Base rate"}.items()})
-    ui.note("<b>About FPL xP.</b> The benchmark is FPL's own pre-deadline expected points (<code>ep_this</code>, as "
-            "archived by vaastav). It reflects injury and team news, which statistics cannot see. Stacking it as a feature "
+    ui.note("<b>About FPL xP.</b> The benchmark is FPL's own pre-deadline expected points (as archived by vaastav). It reflects injury and team news, which statistics cannot see. Stacking it as a feature "
             f"(research row) lifts backtest best-XI points to {research['top_xi']:.2f}, but it is <b>not deployed</b>: the "
-            "live <code>ep_next</code> feed is non-zero for almost every player, while the archive is non-zero for only "
+            "live expected-points feed is non-zero for almost every player, while the archive is non-zero for only "
             "15–50% of rows, so a model trained on the archive over-predicts live. Instead, production uses FPL's "
             "chance-of-playing flag as a post-model availability multiplier. Per-gameweek Spearman among active players: "
-            + ", ".join(f"{k} {v:.3f}" for k, v in m["gw_spearman_active"].items()) + ".")
+            + ", ".join(f"{ {'pred': 'SportPulse', 'pred_xp': 'research variant', 'xP': 'FPL xP', 'form6': 'recent form'}.get(k, k)} "
+                        f"{v:.3f}" for k, v in m["gw_spearman_active"].items()) + ".")
 
 with t_card:
+    kick = pd.Timestamp(d["latest_kickoff"])
     st.markdown(f"""
-### Premier League player performance forecaster
+### Premier League player forecaster
 
-Predicts, for every Premier League player and fixture: **FPL points**, **P(plays 60+ min)**, **P(scores)**,
-and **P(assists)**. It is trained on **{d['rows']:,} real player-fixture rows** ({d['players']:,} players,
-seasons {d['seasons'][0]} → {d['seasons'][-1]}), with data through **gameweek {d['latest_gameweek']}
-({str(d['latest_kickoff'])[:10]})**.
+For every Premier League player and fixture, the model predicts **FPL points** and the probability that the
+player **plays 60+ minutes**, **scores** and **assists**. It is trained on **{d['rows']:,} real player-fixture rows**
+({d['players']:,} players, {d['seasons'][0]} to {d['seasons'][-1]}), with data through **gameweek {d['latest_gameweek']}
+({kick:%-d %B %Y})**.
 
-**Features (all lagged, i.e. known before the deadline)**
-* Rolling form over the last 3 / 6 fixtures and an EWM, for minutes, starts, points, goals, assists, xG, xA,
-  xGI, xGC, bonus, BPS, ICT (influence, creativity, threat), clean sheets, saves and cards
-* Per-90 rates over the last 10 fixtures; season-to-date averages; days since last match
-* Price, ownership and transfer momentum from the previous gameweek
-* **Fixture context from the SportPulse match engine:** team and opponent Elo, pi-rating goal difference,
-  long-memory goals and shots on target for/against, form points (team perspective, venue-aware)
-* (Research variant only) FPL's archived pre-deadline expected points as a prior
+#### What the model sees
+Only information available before the gameweek deadline:
 
-**Protocol.** Train 2016-17 → 2023-24 ({d['train_rows']:,} rows), early-stop on 2024-25 ({d['valid_rows']:,}),
-test on **2025-26 + 2026-27 to date ({d['test_rows']:,} rows)**, then refit on everything for GW{d['next_gameweek']}.
-Fixture-context join coverage: {d['context_join_coverage'] * 100:.1f}%.
+* **Recent form**: the last 3 and 6 fixtures plus a longer weighted average, covering minutes, starts, points, goals,
+  assists, xG, xA, bonus and the ICT index (influence, creativity, threat), clean sheets, saves and cards
+* **Rates**: per-90 output over the last 10 fixtures, season-to-date averages and days since the last match
+* **Market signals**: price, ownership and transfer momentum from the previous gameweek
+* **Fixture difficulty** from the SportPulse match engine: team and opponent Elo, expected goal difference, goals
+  and shots on target for and against, and recent points, all from the team's side of the fixture
 
-**Live adjustments.** Projections are multiplied by FPL's published chance-of-playing flag. Players flagged
-injured, suspended or unavailable with no percentage are set to zero.
+#### Evaluation
+* **Training**: {d['seasons'][0]} to 2023-24 · {d['train_rows']:,} rows
+* **Validation**: 2024-25 · {d['valid_rows']:,} rows (early stopping)
+* **Test**: 2025-26 and 2026-27 to date · {d['test_rows']:,} rows, never seen in training
+* **Serving**: refit on every season, then projected for gameweek {d['next_gameweek']}
+
+#### Availability
+Projections are scaled by FPL's published chance-of-playing flag. Players flagged as injured, suspended or
+unavailable without a percentage are projected at zero.
 """)
+

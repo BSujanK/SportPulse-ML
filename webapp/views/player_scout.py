@@ -139,36 +139,42 @@ with t_rise:
 
 with t_card:
     v, dv = pm["value"], pm["development"]
+    vm_, vb, vs = v["model"], v["baseline_linear_log"], v["stress_forward_edition"]
     st.markdown(f"""
 ### Player models
 
-**Market value** · LightGBM regression on log(€), 60+ features (attributes, age, potential, contract,
-reputation, league, position). Evaluated with 5-fold **GroupKFold by player**: a player's every season is held
-out together, so the model is always valuing someone it has never seen.
+#### Market value
+LightGBM regression on the log of market value, using 60+ features: attributes, age, potential, contract,
+reputation, league and position. Evaluation holds out each player's every season together (group-wise
+cross-validation), so the model is always valuing someone it has never seen.
 
-| | R² (log €) | MAE (log) | Median abs. error | within ±10% | within ±25% |
-|---|---|---|---|---|---|
-| **LightGBM (FIFA {ed % 100} rows)** | **{v['model']['r2']:.4f}** | {v['model']['mae']:.3f} | {v['model']['median_ape'] * 100:.1f}% | {v['model']['within_10pct'] * 100:.0f}% | {v['model']['within_25pct'] * 100:.0f}% |
-| Linear baseline (OVR, POT, age + edition) | {v['baseline_linear_log']['r2']:.4f} | {v['baseline_linear_log']['mae']:.3f} | {v['baseline_linear_log']['median_ape'] * 100:.1f}% | {v['baseline_linear_log']['within_10pct'] * 100:.0f}% | {v['baseline_linear_log']['within_25pct'] * 100:.0f}% |
-| Stress test: forward edition (train ≤ FIFA {ed % 100 - 2}) | {v['stress_forward_edition']['r2']:.4f} | {v['stress_forward_edition']['mae']:.3f} | {v['stress_forward_edition']['median_ape'] * 100:.1f}% | {v['stress_forward_edition']['within_10pct'] * 100:.0f}% | {v['stress_forward_edition']['within_25pct'] * 100:.0f}% |
+| Model | R² (log value) | Median error | Within ±10% | Within ±25% |
+|---|---|---|---|---|
+| **SportPulse, FIFA {ed % 100}** | **{vm_['r2']:.4f}** | **{vm_['median_ape'] * 100:.1f}%** | {vm_['within_10pct'] * 100:.0f}% | {vm_['within_25pct'] * 100:.0f}% |
+| Linear baseline (rating, potential, age) | {vb['r2']:.4f} | {vb['median_ape'] * 100:.1f}% | {vb['within_10pct'] * 100:.0f}% | {vb['within_25pct'] * 100:.0f}% |
+| Stress test: next edition | {vs['r2']:.4f} | {vs['median_ape'] * 100:.1f}% | {vs['within_10pct'] * 100:.0f}% | {vs['within_25pct'] * 100:.0f}% |
 
-The forward-edition stress test is harder because EA re-prices the market every edition
-(a 75-rated 25-year-old: €8.0M in FIFA 19/20 → €7.0M in FIFA 21/22).
+The stress test trains on FIFA 15–{ed % 100 - 2} and values FIFA {ed % 100}. It is harder because EA re-prices the
+market every edition: a 75-rated 25-year-old was worth €8.0M in FIFA 19–20 and €7.0M in FIFA 21–22.
 
-**Development** · LightGBM (L1) + quantile LightGBM (q10/q50/q90) predicting next-edition overall.
-Temporal test: trained on 15→16 … 19→20 pairs, scored on **21→22** ({dv['model']['n']:,} players).
+#### Development
+LightGBM forecasts each player's rating one season ahead, with quantile models giving an 80% range.
+Trained on the season-to-season changes from FIFA 15 to FIFA 20 and tested on the FIFA 21 → 22 change
+({dv['model']['n']:,} players).
 
-| | MAE | RMSE | R² |
+| Model | Mean error (rating points) | RMSE | R² |
 |---|---|---|---|
-| **LightGBM** | **{dv['model']['mae']:.3f}** | {dv['model']['rmse']:.3f} | {dv['model']['r2']:.3f} |
-| Potential-pull linear baseline | {dv['baseline_potential_pull']['mae']:.3f} | {dv['baseline_potential_pull']['rmse']:.3f} | {dv['baseline_potential_pull']['r2']:.3f} |
-| Persistence (no change) | {dv['baseline_persistence']['mae']:.3f} | {dv['baseline_persistence']['rmse']:.3f} | {dv['baseline_persistence']['r2']:.3f} |
-| **LightGBM, U23 only** | **{dv['model_u23']['mae']:.3f}** | {dv['model_u23']['rmse']:.3f} | {dv['model_u23']['r2']:.3f} |
-| Persistence, U23 only | {dv['baseline_persistence_u23']['mae']:.3f} | {dv['baseline_persistence_u23']['rmse']:.3f} | {dv['baseline_persistence_u23']['r2']:.3f} |
+| **SportPulse** | **{dv['model']['mae']:.2f}** | {dv['model']['rmse']:.2f} | {dv['model']['r2']:.3f} |
+| Potential-pull baseline | {dv['baseline_potential_pull']['mae']:.2f} | {dv['baseline_potential_pull']['rmse']:.2f} | {dv['baseline_potential_pull']['r2']:.3f} |
+| No change (persistence) | {dv['baseline_persistence']['mae']:.2f} | {dv['baseline_persistence']['rmse']:.2f} | {dv['baseline_persistence']['r2']:.3f} |
+| **SportPulse, under-23s** | **{dv['model_u23']['mae']:.2f}** | {dv['model_u23']['rmse']:.2f} | {dv['model_u23']['r2']:.3f} |
+| No change, under-23s | {dv['baseline_persistence_u23']['mae']:.2f} | {dv['baseline_persistence_u23']['rmse']:.2f} | {dv['baseline_persistence_u23']['r2']:.3f} |
 
-80% prediction-interval empirical coverage: **{dv['model']['interval_80_coverage'] * 100:.1f}%**.
+The 80% range contains the actual next-season rating for **{dv['model']['interval_80_coverage'] * 100:.1f}%** of players.
 
-**Data recency.** EA FIFA 22 (2021-22) is the newest player edition available in the public sources this
-pipeline uses. Projections are one season ahead of that snapshot. Drop a newer sofifa export with the same schema
-into `data/raw/` and re-run `python -m sportpulse.train players` to refresh.
+#### Data recency
+EA FIFA 22 (2021-22) is the newest player edition in the public sources this pipeline can reach, so these pages
+show that snapshot plus a one-season projection. For current-season players, use the Premier League Player
+Forecaster, which runs on 2026-27 data.
 """)
+
