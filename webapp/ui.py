@@ -74,7 +74,7 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-icon.sp {{ background: rgba(167,139,250,.12); border-color: rgba(167,139,250,.35); }}
 
 /* ── Tags / pills ─────────────────────────────────── */
-.hf-tags {{ display:flex; flex-wrap:wrap; gap:6px; margin: 10px 0 4px 0; }}
+.hf-tags {{ display:flex; flex-wrap:wrap; gap:6px; margin: 12px 0 0 0; }}
 .hf-tag {{ display:inline-flex; align-items:center; gap:5px; padding: 2px 9px; border-radius: 6px;
   font-size: .76rem; border: 1px solid {BORDER}; background: {CARD_2}; color: #d4d4d4; white-space:nowrap; }}
 .hf-tag.task {{ border-color: rgba(255,107,0,.45); color: {ORANGE_3}; background: rgba(255,107,0,.08); }}
@@ -84,7 +84,7 @@ hr {{ border-color: {BORDER} !important; }}
 
 /* ── Repo header ───────────────────────────────────── */
 .hf-repo {{ display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace;
-  font-size: 1.35rem; font-weight: 600; margin: 4px 0 2px 0; flex-wrap: wrap; }}
+  font-size: 1.35rem; font-weight: 600; margin: 0; flex-wrap: wrap; }}
 .hf-repo .org {{ color: {MUTED}; font-weight: 500; }}
 .hf-repo .sep {{ color: {DIM}; }}
 .hf-badge {{ font-family:'Source Sans 3',sans-serif; font-size:.72rem; font-weight:600; padding: 1px 8px;
@@ -113,7 +113,7 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-kpi .d.good {{ color:{WIN}; }} .hf-kpi .d.bad {{ color:{LOSS}; }} .hf-kpi .d.orange {{ color:{ORANGE_2}; }}
 
 /* ── Hero / section ────────────────────────────────── */
-.hf-hero {{ border:1px solid {BORDER}; border-radius: 14px; padding: 26px 30px; margin-bottom: 18px;
+.hf-hero {{ border:1px solid {BORDER}; border-radius: 14px; padding: 26px 30px; margin: 0;
   background: radial-gradient(1100px 260px at 88% 0%, rgba(255,107,0,.13), transparent 60%),
               linear-gradient(180deg, #121212, {BLACK}); }}
 .hf-hero h1 {{ font-size: 2.05rem; font-weight: 800; margin: 0; padding: 0; color: {TEXT} !important; }}
@@ -121,16 +121,16 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-hero-title {{ font-size: 2.05rem; font-weight: 800; letter-spacing:-0.02em; color:{TEXT}; line-height:1.15; }}
 .hf-hero-title span {{ color:{ORANGE}; }}
 .hf-hero p {{ color:{MUTED}; margin: 6px 0 0 0; font-size: 1rem; max-width: 900px; }}
-.hf-section {{ display:flex; align-items:center; gap:10px; margin: 22px 0 10px 0; font-weight:700;
+.hf-section {{ display:flex; align-items:center; gap:10px; margin: var(--sp-section) 0 0 0; font-weight:700;
   font-size: 1.08rem; }}
 .hf-section .count {{ font-weight: 500; color:{MUTED}; font-size:.9rem; }}
 .hf-note {{ border:1px solid {BORDER}; border-left: 3px solid {ORANGE}; border-radius: 8px;
-  padding: 10px 14px; background:{CARD}; color:#d4d4d4; font-size:.86rem; margin: 8px 0; }}
+  padding: 10px 14px; background:{CARD}; color:#d4d4d4; font-size:.86rem; margin: 0; }}
 .hf-mono {{ font-family:'IBM Plex Mono',monospace; font-size:.82rem; color:{MUTED}; }}
 
 /* ── Section icon, steps, kv, bullets ─────────────── */
 .hf-section-icon {{ color:{ORANGE}; display:inline-flex; }}
-.hf-steps {{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin: 6px 0 4px 0; }}
+.hf-steps {{ display:flex; align-items:stretch; gap:var(--sp); flex-wrap:wrap; margin: 0; }}
 .hf-step {{ flex:1 1 0; min-width:140px; min-height:118px; background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:12px 14px; }}
 .hf-step-icon {{ width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
   color:{ORANGE}; background: rgba(255,107,0,.10); border:1px solid rgba(255,107,0,.30); margin-bottom:8px; }}
@@ -152,6 +152,16 @@ hr {{ border-color: {BORDER} !important; }}
 [data-testid="stPageLink"] a p {{ color:{MUTED} !important; font-size:.8rem !important; }}
 [data-testid="stPageLink"] a:hover p {{ color:{ORANGE_2} !important; }}
 .hf-card {{ min-height: 128px; }}
+
+/* ── Spacing system: one 16px rhythm everywhere ───── */
+:root {{ --sp: 16px; --sp-section: 16px; }}
+/* Streamlit pulls markdown blocks up by 1rem (meant for plain paragraphs). Under our own
+   components that cancels the block gap and makes elements touch, so neutralise it. */
+[data-testid="stMarkdownContainer"]:has(> [class^="hf-"]) {{ margin-bottom: 0 !important; }}
+[data-testid="stVerticalBlock"] {{ row-gap: var(--sp) !important; }}
+[data-testid="stHorizontalBlock"] {{ column-gap: var(--sp) !important; row-gap: var(--sp) !important; }}
+[data-testid="stTabs"] [data-baseweb="tab-panel"] {{ padding-top: var(--sp) !important; }}
+.hf-step-arrow {{ display:none; }}
 
 /* ── Uniform cards (fixed-height containers) ──────── */
 [class*="st-key-spcard"] {{ border-radius:12px !important; overflow:hidden !important;
@@ -310,7 +320,7 @@ _GRID_N = [0]
 def card_grid(items: list[dict], cols: int = 3, height: int = 176) -> None:
     """Uniform grid of equal-size cards. item keys: title, org, icon, kind, desc, meta, extra, page, link."""
     for row in range(0, len(items), cols):
-        columns = st.columns(cols, gap="medium")
+        columns = st.columns(cols, gap="small")
         for c, it in zip(columns, items[row:row + cols]):
             _GRID_N[0] += 1
             with c, st.container(border=True, height=height, key=f"spcard_{_GRID_N[0]}"):
