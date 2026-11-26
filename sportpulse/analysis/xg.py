@@ -24,15 +24,16 @@ CATS = {"body_part": ["Right Foot", "Left Foot", "Head", "Other"],
                          "From Goal Kick", "From Keeper", "From Kick Off", "Other"],
         "assist_type": ["pass", "cross", "through_ball", "cut_back"],
         "assist_height": ["Ground Pass", "Low Pass", "High Pass"]}
-NUM = ["distance", "angle", "x", "y", "dy", "first_time", "one_on_one", "aerial_won", "open_goal",
+NUM = ["female", "distance", "angle", "x", "y", "dy", "first_time", "one_on_one", "aerial_won", "open_goal",
        "follows_dribble", "under_pressure", "assisted", "assist_x",
        "ff_available", "ff_def_in_cone", "ff_mates_in_cone", "ff_def_within_2", "ff_def_within_5",
        "ff_nearest_def", "ff_gk_dist_goal", "ff_gk_dist_shooter", "ff_gk_in_cone", "ff_gk_off_line"]
 FEATURES = NUM + list(CATS)
 MONO = {"distance": -1, "angle": 1}
-PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=31, min_data_in_leaf=80,
-              feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0,
-              verbose=-1, seed=SEED, num_threads=0,
+# Optuna TPE (25 trials) on a held-out fifth of pre-2022 matches; the 2022-24 test set is not used.
+PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=11, min_data_in_leaf=35,
+              feature_fraction=0.75, bagging_fraction=0.8, bagging_freq=1, lambda_l2=2.29,
+              min_sum_hessian_in_leaf=1.35, verbose=-1, seed=SEED, num_threads=0,
               monotone_constraints=[MONO.get(f, 0) for f in FEATURES], monotone_constraints_method="advanced")
 
 
@@ -41,6 +42,8 @@ def features(shots: pd.DataFrame) -> pd.DataFrame:
     for c in NUM:
         if c == "dy":
             X[c] = (shots["y"] - 40).abs()
+        elif c == "female":
+            X[c] = shots.get("gender", pd.Series("male", index=shots.index)).eq("female").astype(float)
         elif c == "assisted":
             X[c] = shots["assist_type"].notna().astype(float)
         else:
@@ -102,17 +105,18 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
     }, "penalty_rate": pen_rate, "iters": n_iter,
         "shots": int(len(shots)), "non_penalty_shots": int(np_mask.sum()), "matches": int(shots.match_id.nunique())}
 
-    # Temporal generalisation: train on older competitions, test on 2022-2024 tournaments
+    # Temporal generalisation: train on matches before July 2022, test on the 2022-2024 men's tournaments
     recent = shots.loc[np_mask, "label"].isin(recent_labels).to_numpy()
-    if recent.any() and (~recent).any():
-        dtr = lgb.Dataset(Xn[~recent], yn[~recent])
+    older = (shots.loc[np_mask, "date"] < "2022-07-01").to_numpy() if "date" in shots else ~recent
+    if recent.any() and older.any():
+        dtr = lgb.Dataset(Xn[older], yn[older])
         b = lgb.train(PARAMS, dtr, n_iter)
         pr = b.predict(Xn[recent])
         okr = recent & ok
         metrics["temporal_recent_test"] = {
             "SportPulse xG (LightGBM)": _metrics(yn[okr], b.predict(Xn[okr])),
             "StatsBomb xG (commercial)": _metrics(yn[okr], sb[okr]),
-            "n": int(okr.sum()), "competitions": sorted(recent_labels)}
+            "n": int(okr.sum()), "competitions": sorted(recent_labels), "trained_before": "2022-07-01"}
         del pr
 
     booster = lgb.train(PARAMS, lgb.Dataset(Xn, yn), n_iter)

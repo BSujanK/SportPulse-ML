@@ -149,7 +149,8 @@ def team_profiles(tm: pd.DataFrame) -> pd.DataFrame:
     # Percentile within competition (higher = more of the trait; for "lower is better" metrics invert)
     for m, (_, higher) in PROFILE_METRICS.items():
         r = prof.groupby("label")[m].rank(pct=True)
-        prof[f"pct_{m}"] = r if higher else 1 - r + 1 / prof.groupby("label")[m].transform("count")
+        pct = r if higher else 1 - r + 1 / prof.groupby("label")[m].transform("count")
+        prof[f"pct_{m}"] = pct.fillna(0.5)   # metric unavailable for this team: neutral percentile
     return prof
 
 

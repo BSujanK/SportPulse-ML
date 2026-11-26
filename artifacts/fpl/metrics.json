@@ -26,17 +26,31 @@
   "leaderboard": [
     {
       "model": "SportPulse LightGBM (production)",
-      "mae": 0.9986868626835333,
-      "rmse": 1.9580865762161108,
-      "spearman": 0.7193456011106485,
-      "top_xi": 4.651515151515151
+      "mae": 0.9982871665479847,
+      "rmse": 1.9595991982894863,
+      "spearman": 0.7195875286576143,
+      "top_xi": 4.659090909090909
+    },
+    {
+      "model": "Direct points head only",
+      "mae": 0.9988697846198571,
+      "rmse": 1.9604614533580522,
+      "spearman": 0.7191048384663462,
+      "top_xi": 4.676136363636364
+    },
+    {
+      "model": "Hurdle head only (P(plays) \u00d7 points if plays)",
+      "mae": 0.9912700292646579,
+      "rmse": 1.9512007166681975,
+      "spearman": 0.7232085593055406,
+      "top_xi": 4.706439393939394
     },
     {
       "model": "Research: SportPulse + archived FPL xP",
-      "mae": 0.8733412458151377,
-      "rmse": 2.0092958070341673,
-      "spearman": 0.706726523496181,
-      "top_xi": 6.342803030303031
+      "mae": 0.8740965251326314,
+      "rmse": 2.0083056026739494,
+      "spearman": 0.7062406731736358,
+      "top_xi": 6.554924242424242
     },
     {
       "model": "FPL official xP",
@@ -68,33 +82,33 @@
     }
   ],
   "gw_spearman_active": {
-    "pred": 0.5608892552779375,
-    "pred_xp": 0.6008715885151514,
+    "pred": 0.5611146748469742,
+    "pred_xp": 0.6009201363872639,
     "xP": 0.720201318004635,
     "form6": 0.4209191526552482
   },
   "classifiers": {
     "p_60": {
-      "logloss": 0.25902768558164996,
+      "logloss": 0.2589787276698372,
       "logloss_prior": 0.5915303885739861,
-      "brier": 0.08084670893479143,
+      "brier": 0.08082791659924952,
       "base_rate": 0.27206145543654836,
       "logloss_form": 0.35881050025319133,
-      "auc": 0.9472730255912674
+      "auc": 0.9472710694896929
     },
     "p_goal": {
-      "logloss": 0.10468901072984908,
+      "logloss": 0.10468057672309003,
       "logloss_prior": 0.1415616095691233,
-      "brier": 0.027532184402706952,
+      "brier": 0.027538340344829493,
       "base_rate": 0.03182907018365043,
-      "auc": 0.8872147651072755
+      "auc": 0.8870829272905707
     },
     "p_assist": {
-      "logloss": 0.1113272715994766,
+      "logloss": 0.11105477982655142,
       "logloss_prior": 0.13774115830121642,
-      "brier": 0.02819815913322086,
+      "brier": 0.028155092421685304,
       "base_rate": 0.030782785869655,
-      "auc": 0.8467227995382918
+      "auc": 0.8471894144940895
     }
   },
   "by_season": {
@@ -102,72 +116,75 @@
       "rows": 29757,
       "gameweeks": 38,
       "model": {
-        "mae": 0.9614619265797578,
-        "rmse": 1.9257346094853394,
-        "spearman": 0.7223790668499958
+        "mae": 0.9608507902980836,
+        "rmse": 1.9263919497508855,
+        "spearman": 0.7226434215139341
       },
       "xP": {
         "mae": 1.0700574654703094,
         "rmse": 2.3722715865652426,
         "spearman": 0.303512505970927
       },
-      "top_xi_model": 4.547846889952153,
+      "top_xi_model": 4.600478468899522,
       "top_xi_xP": 2.9952153110047846
     },
     "2026-27": {
       "rows": 6562,
       "gameweeks": 10,
       "model": {
-        "mae": 1.167492474332427,
-        "rmse": 2.0985448360010968,
-        "spearman": 0.6944821564075565
+        "mae": 1.1680516054489762,
+        "rmse": 2.1036174835395585,
+        "spearman": 0.6941916220426997
       },
       "xP": {
         "mae": 1.1905669003352637,
         "rmse": 2.3897688430971677,
         "spearman": 0.4032352747731141
       },
-      "top_xi_model": 5.045454545454545,
+      "top_xi_model": 4.881818181818181,
       "top_xi_xP": 4.963636363636364
     }
   },
   "iters": {
-    "points": 439,
-    "p_60": 560,
-    "p_goal": 247,
-    "p_assist": 213
+    "points": 467,
+    "p_60": 551,
+    "p_goal": 308,
+    "p_assist": 263,
+    "p_play": 665,
+    "pts_if_played": 223
   },
+  "blend_w_direct": 0.9500000000000001,
   "importance": {
-    "last_minutes": 0.4095,
-    "total_points_r3": 0.0942,
-    "total_points_ewm": 0.0555,
-    "minutes_r3": 0.0381,
-    "price": 0.0253,
-    "season_pts_pg": 0.0226,
-    "ict_index_ewm": 0.0196,
-    "ict_index_r3": 0.0176,
-    "ctx_win_p": 0.014,
-    "ctx_pi_gd": 0.0135,
-    "played_r3": 0.0123,
-    "ctx_elo_diff": 0.0111,
-    "log_selected": 0.0097,
-    "ctx_opp_sot": 0.0092,
-    "total_points_r6": 0.0085,
-    "ctx_elo_against": 0.0084,
-    "ctx_opp_ga": 0.008,
-    "transfer_rate": 0.0078,
-    "season_min_pg": 0.0064,
-    "ctx_opp_gf": 0.006,
-    "ctx_team_sot": 0.0059,
-    "ctx_xg_for": 0.0058,
-    "ctx_opp_pts": 0.0057,
-    "ctx_team_pts": 0.0057,
-    "ctx_team_ga": 0.0054,
-    "ctx_xg_against": 0.0054,
-    "threat_ewm": 0.0054,
-    "ctx_elo_for": 0.0052,
-    "played_ewm": 0.0052,
-    "clean_sheets_ewm": 0.0048
+    "last_minutes": 0.3907,
+    "total_points_r3": 0.1009,
+    "total_points_ewm": 0.0574,
+    "minutes_r3": 0.0547,
+    "season_pts_pg": 0.027,
+    "price": 0.0247,
+    "ctx_pi_gd": 0.0152,
+    "ict_index_ewm": 0.0144,
+    "ict_index_r3": 0.0138,
+    "ctx_elo_diff": 0.0124,
+    "log_selected": 0.0095,
+    "ctx_opp_sot": 0.0093,
+    "ctx_win_p": 0.0092,
+    "ctx_opp_ga": 0.0082,
+    "ctx_elo_against": 0.0077,
+    "transfer_rate": 0.0074,
+    "total_points_r6": 0.0073,
+    "ctx_xg_against": 0.0065,
+    "threat_ewm": 0.0063,
+    "ctx_opp_pts": 0.0062,
+    "season_min_pg": 0.006,
+    "ctx_team_pts": 0.0058,
+    "ctx_opp_gf": 0.0058,
+    "ctx_team_sot": 0.0054,
+    "ctx_elo_for": 0.0049,
+    "ctx_team_gf": 0.0048,
+    "ctx_xg_for": 0.0047,
+    "clean_sheets_ewm": 0.0046,
+    "ctx_team_ga": 0.0046,
+    "apps_total": 0.0045
   },
-  "runtime_sec": 172.0
+  "runtime_sec": 208.6
 }

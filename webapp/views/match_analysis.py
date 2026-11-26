@@ -127,7 +127,7 @@ with tabs[4]:
 
 LightGBM on **{x['non_penalty_shots']:,} non-penalty shots** from **{x['matches']:,} matches** (StatsBomb open data).
 Monotone constraints make xG non-increasing in distance and non-decreasing in goal-mouth angle. Features cover
-shot geometry, body part and technique, phase of play, the assisting pass, and **freeze-frame geometry**: defenders
+shot geometry, body part and technique, phase of play, the assisting pass, a men's/women's flag and **freeze-frame geometry**: defenders
 and teammates in the shooting cone, the goalkeeper's position, nearest-defender distance and pressure count.
 Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
 """)
@@ -139,7 +139,7 @@ Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
                     "goals": st.column_config.NumberColumn("Goals", format="%.0f"),
                     "n": st.column_config.NumberColumn("Shots", format="%d")})
     if tt:
-        ui.section("Temporal test: trained on ≤2021, scored on 2022–24 tournaments", icon="clock")
+        ui.section("Temporal test: trained before July 2022, scored on 2022–24 men's tournaments", icon="clock")
         st.dataframe(pd.DataFrame(tt).T[["log_loss", "brier", "auc", "ece", "xg_sum", "goals", "n"]],
                      width="stretch",
                      column_config={c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in
@@ -161,6 +161,10 @@ Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
                                orientation="h", marker_color=ui.ORANGE))
         fig.update_layout(title="Feature importance (gain share)", height=360)
         ui.plot(fig)
-    ui.note("StatsBomb's commercial xG is trained on far more proprietary data, which makes it a demanding benchmark. "
-            "In cross-validation the two models are within 0.001 log-loss; on the unseen 2022–24 tournaments SportPulse "
-            "xG is slightly better and better calibrated.")
+    o, c = x["non_penalty_cv"]["SportPulse xG (LightGBM)"], x["non_penalty_cv"]["StatsBomb xG (commercial)"]
+    rec = x.get("temporal_recent_test", {})
+    ro, rc = rec.get("SportPulse xG (LightGBM)", {}), rec.get("StatsBomb xG (commercial)", {})
+    ui.note(f"StatsBomb's commercial xG is trained on far more proprietary data, which makes it a demanding benchmark. "
+            f"Out-of-fold, SportPulse xG scores {o['log_loss']:.4f} log-loss against {c['log_loss']:.4f}"
+            + (f"; on the unseen 2022–24 tournaments {ro['log_loss']:.4f} against {rc['log_loss']:.4f} "
+               f"(AUC {ro['auc']:.3f} vs {rc['auc']:.3f})." if ro else "."))

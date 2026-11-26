@@ -2,45 +2,45 @@
   "xg": {
     "non_penalty_cv": {
       "SportPulse xG (LightGBM)": {
-        "log_loss": 0.2506955779286513,
-        "brier": 0.07088429124539893,
-        "auc": 0.810932140501555,
-        "ece": 0.0029405743846963183,
-        "xg_sum": 4694.914184148631,
-        "goals": 4712.0,
-        "n": 49257
+        "log_loss": 0.26185648672720424,
+        "brier": 0.07484901772211729,
+        "auc": 0.8117056380858632,
+        "ece": 0.00232302129227269,
+        "xg_sum": 10222.648725097524,
+        "goals": 10233.0,
+        "n": 99746
       },
       "StatsBomb xG (commercial)": {
-        "log_loss": 0.2502844742740228,
-        "brier": 0.07045302025534336,
-        "auc": 0.812251255431022,
-        "ece": 0.007350705067903014,
-        "xg_sum": 4577.8012804037,
-        "goals": 4712.0,
-        "n": 49257
+        "log_loss": 0.2660049450388986,
+        "brier": 0.07531814339810997,
+        "auc": 0.8048296128381163,
+        "ece": 0.006993859787010955,
+        "xg_sum": 9620.7035592832,
+        "goals": 10233.0,
+        "n": 99746
       },
       "Distance + angle logistic": {
-        "log_loss": 0.27974757353670904,
-        "brier": 0.07890660492767168,
-        "auc": 0.7450760219201848,
-        "ece": 0.012289177165070306,
-        "xg_sum": 4711.967656904439,
-        "goals": 4712.0,
-        "n": 49257
+        "log_loss": 0.2952117433067102,
+        "brier": 0.08403492205858486,
+        "auc": 0.7368118876560465,
+        "ece": 0.013388489054771201,
+        "xg_sum": 10233.264774788411,
+        "goals": 10233.0,
+        "n": 99746
       }
     },
-    "penalty_rate": 0.7446808510638298,
-    "iters": 203,
-    "shots": 49821,
-    "non_penalty_shots": 49257,
-    "matches": 1999,
+    "penalty_rate": 0.7629695885509838,
+    "iters": 685,
+    "shots": 100864,
+    "non_penalty_shots": 99746,
+    "matches": 3961,
     "temporal_recent_test": {
       "SportPulse xG (LightGBM)": {
-        "log_loss": 0.25482668217998594,
-        "brier": 0.07206075234792049,
-        "auc": 0.8032931475646494,
-        "ece": 0.0071686044566373315,
-        "xg_sum": 628.594029428051,
+        "log_loss": 0.25269703026318796,
+        "brier": 0.07151252100360385,
+        "auc": 0.8076448049169487,
+        "ece": 0.009654320492277896,
+        "xg_sum": 657.1505235332559,
         "goals": 627.0,
         "n": 6531
       },
@@ -62,123 +62,187 @@
         "Ligue 1 2022/2023",
         "Major League Soccer 2023",
         "UEFA Euro 2024"
-      ]
+      ],
+      "trained_before": "2022-07-01"
     },
     "importance": {
-      "ff_gk_dist_shooter": 0.3542,
-      "angle": 0.1275,
-      "ff_nearest_def": 0.0651,
-      "distance": 0.0497,
-      "ff_gk_off_line": 0.0434,
-      "ff_def_in_cone": 0.0407,
-      "ff_gk_dist_goal": 0.0357,
-      "body_part": 0.0336,
-      "open_goal": 0.0332,
-      "dy": 0.0322,
-      "ff_gk_in_cone": 0.031,
-      "x": 0.0288,
-      "assist_x": 0.0225,
-      "aerial_won": 0.0207,
-      "y": 0.0167,
-      "assist_type": 0.0133,
-      "assist_height": 0.0126,
-      "technique": 0.0083,
-      "ff_def_within_5": 0.0073,
-      "play_pattern": 0.0068,
-      "shot_type": 0.0035,
-      "ff_def_within_2": 0.0035,
-      "one_on_one": 0.003,
-      "first_time": 0.0026,
-      "ff_mates_in_cone": 0.0025,
+      "ff_gk_dist_shooter": 0.3262,
+      "angle": 0.1779,
+      "ff_def_in_cone": 0.054,
+      "ff_nearest_def": 0.0535,
+      "distance": 0.0427,
+      "ff_gk_in_cone": 0.0392,
+      "open_goal": 0.037,
+      "ff_gk_dist_goal": 0.0363,
+      "ff_gk_off_line": 0.0346,
+      "dy": 0.0281,
+      "body_part": 0.0264,
+      "assist_height": 0.0198,
+      "x": 0.019,
+      "aerial_won": 0.0174,
+      "technique": 0.0169,
+      "assist_type": 0.0156,
+      "assist_x": 0.0129,
+      "y": 0.0096,
+      "shot_type": 0.008,
+      "play_pattern": 0.0076,
+      "ff_def_within_5": 0.0042,
+      "one_on_one": 0.0034,
+      "female": 0.0031,
+      "ff_def_within_2": 0.003,
       "under_pressure": 0.0015,
-      "assisted": 0.0002,
+      "first_time": 0.0013,
+      "ff_mates_in_cone": 0.0007,
+      "assisted": 0.0001,
       "follows_dribble": 0.0,
       "ff_available": 0.0
     },
     "calibration": [
       [
-        0.011073580752795825,
-        0.01071863580998782,
-        4105
+        0.01079354974751195,
+        0.01106700348851197,
+        8313
       ],
       [
-        0.016747113782046224,
-        0.02095006090133983,
-        4105
+        0.017840946802429297,
+        0.018768046198267566,
+        8312
       ],
       [
-        0.02256764260977368,
-        0.018762183235867445,
-        4104
+        0.02405451224765745,
+        0.023700673724735322,
+        8312
       ],
       [
-        0.028108358114363415,
-        0.028014616321559074,
-        4105
+        0.030318745541755034,
+        0.02478344562078922,
+        8312
       ],
       [
-        0.03432536097655949,
-        0.03215590742996346,
-        4105
+        0.03765442629728856,
+        0.03801732435033686,
+        8312
       ],
       [
-        0.0419991024915735,
-        0.039473684210526314,
-        4104
+        0.046757051743092165,
+        0.04776227141482194,
+        8312
       ],
       [
-        0.052040056229395386,
-        0.058465286236297195,
-        4105
+        0.05859078157334233,
+        0.05883060635226179,
+        8312
       ],
       [
-        0.0658826693561863,
-        0.07064555420219244,
-        4105
+        0.07484047594273009,
+        0.07783926852743023,
+        8312
       ],
       [
-        0.08742359368055283,
-        0.09502923976608187,
-        4104
+        0.09883190118084136,
+        0.10454764196342638,
+        8312
       ],
       [
-        0.12701993478506254,
-        0.12375152253349574,
-        4105
+        0.14092868778346188,
+        0.14412897016361886,
+        8312
       ],
       [
-        0.21357969853671363,
-        0.21120584652862362,
-        4105
+        0.2260681377404627,
+        0.22220885466794996,
+        8312
       ],
       [
-        0.4429761711423249,
-        0.4387332521315469,
-        4105
+        0.46313007135376094,
+        0.4594009382894262,
+        8313
       ]
     ]
   },
   "data": {
-    "matches": 1999,
+    "matches": 3961,
     "competitions": [
       "1. Bundesliga 2015/2016",
       "1. Bundesliga 2023/2024",
       "African Cup of Nations 2023",
+      "Champions League 1970/1971",
+      "Champions League 1971/1972",
+      "Champions League 1972/1973",
+      "Champions League 1999/2000",
+      "Champions League 2003/2004",
+      "Champions League 2004/2005",
+      "Champions League 2006/2007",
+      "Champions League 2008/2009",
+      "Champions League 2009/2010",
+      "Champions League 2010/2011",
+      "Champions League 2011/2012",
+      "Champions League 2012/2013",
+      "Champions League 2013/2014",
+      "Champions League 2014/2015",
+      "Champions League 2015/2016",
+      "Champions League 2016/2017",
       "Champions League 2017/2018",
       "Champions League 2018/2019",
       "Copa America 2024",
+      "Copa del Rey 1977/1978",
+      "Copa del Rey 1982/1983",
+      "Copa del Rey 1983/1984",
+      "FA Women's Super League 2018/2019",
+      "FA Women's Super League 2019/2020",
+      "FA Women's Super League 2020/2021",
+      "FA Women's Super League 2023/2024",
+      "FIFA U20 World Cup 1979",
+      "FIFA World Cup 1958",
+      "FIFA World Cup 1962",
+      "FIFA World Cup 1970",
+      "FIFA World Cup 1974",
+      "FIFA World Cup 1986",
+      "FIFA World Cup 1990",
       "FIFA World Cup 2018",
       "FIFA World Cup 2022",
+      "Frauen Bundesliga 2023/2024",
+      "Indian Super league 2021/2022",
+      "La Liga 1973/1974",
+      "La Liga 2004/2005",
+      "La Liga 2005/2006",
+      "La Liga 2006/2007",
+      "La Liga 2007/2008",
+      "La Liga 2008/2009",
+      "La Liga 2009/2010",
+      "La Liga 2010/2011",
+      "La Liga 2011/2012",
+      "La Liga 2012/2013",
+      "La Liga 2013/2014",
+      "La Liga 2014/2015",
       "La Liga 2015/2016",
+      "La Liga 2016/2017",
+      "La Liga 2017/2018",
+      "La Liga 2018/2019",
+      "La Liga 2019/2020",
       "La Liga 2020/2021",
+      "Liga F 2023/2024",
+      "Liga Profesional 1981",
+      "Liga Profesional 1997/1998",
       "Ligue 1 2015/2016",
       "Ligue 1 2021/2022",
       "Ligue 1 2022/2023",
       "Major League Soccer 2023",
+      "NWSL 2018",
+      "NWSL 2023",
+      "North American League 1977",
+      "Premier League 2003/2004",
       "Premier League 2015/2016",
+      "Serie A 1986/1987",
       "Serie A 2015/2016",
+      "Serie A Women 2023/2024",
       "UEFA Euro 2020",
-      "UEFA Euro 2024"
+      "UEFA Euro 2024",
+      "UEFA Europa League 1988/1989",
+      "UEFA Women's Euro 2022",
+      "UEFA Women's Euro 2025",
+      "Women's World Cup 2019",
+      "Women's World Cup 2023"
     ],
     "recent_competitions": [
       "1. Bundesliga 2023/2024",
@@ -189,19 +253,19 @@
       "Major League Soccer 2023",
       "UEFA Euro 2024"
     ],
-    "shots": 49821,
-    "passes": 1977651,
-    "carries": 1514508,
-    "defensive_actions": 1238514,
-    "players": 5094,
-    "last_match": "2024-07-15"
+    "shots": 100864,
+    "passes": 3836550,
+    "carries": 3007953,
+    "defensive_actions": 2517921,
+    "players": 9859,
+    "last_match": "2025-07-27"
   },
   "xt": {
     "grid": [
       16,
       12
     ],
-    "max": 0.27743365834698575
+    "max": 0.2860446834172037
   },
-  "runtime_sec": 46.8
+  "runtime_sec": 41.7
 }

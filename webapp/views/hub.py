@@ -54,7 +54,7 @@ axg = am["xg"]["non_penalty_cv"]
 V = "webapp/views/"
 models = [
     dict(title="expected-goals-freeze-frame", icon="crosshair", page=V + "match_analysis.py", link="Match Analysis",
-         desc="Shot-level xG with freeze-frame geometry, on par with StatsBomb's commercial model.",
+         desc="Shot-level xG with freeze-frame geometry; beats StatsBomb's commercial xG on unseen 2022–24 tournaments.",
          meta=["Binary classification", f"log-loss {axg['SportPulse xG (LightGBM)']['log_loss']:.4f}"]),
     dict(title="premier-league-player-forecaster", icon="target", page=V + "fpl.py", link="PL Player Forecaster",
          desc="Next-gameweek points and involvement probabilities for every Premier League player.",
@@ -92,7 +92,7 @@ datasets = [
          meta=[f"{mm['data']['matches_total'] / 1000:.0f}k rows", f"{mm['data']['divisions']} leagues",
                f"to {mm['data']['last_date']}"]),
     dict(title="statsbomb-open-events", icon="database", kind="ds", page=D, link="Dataset viewer",
-         desc="Event data with pitch locations and shot freeze-frames from 18 competitions.",
+         desc=f"Event data with pitch locations and shot freeze-frames from {len(am['data']['competitions'])} competition-seasons.",
          meta=[f"{am['data']['matches']:,} matches", f"{am['data']['shots'] / 1000:.0f}k shots",
                f"{(am['data']['passes'] + am['data']['carries']) / 1e6:.1f}M actions"]),
     dict(title="fantasy-premier-league", icon="database", kind="ds", page=V + "fpl.py", link="PL Player Forecaster",

@@ -31,7 +31,11 @@ TARGETS = {
     "p_60": ("played60", "binary"),
     "p_goal": ("scored", "binary"),
     "p_assist": ("assisted", "binary"),
+    # Hurdle decomposition: E[points] = P(plays) * E[points | plays]
+    "p_play": ("played", "binary"),
+    "pts_if_played": ("total_points", "regression"),
 }
+CONDITIONAL = {"pts_if_played": "played"}   # trained only on rows where this column == 1
 PARAMS = dict(learning_rate=0.03, num_leaves=63, min_data_in_leaf=200, feature_fraction=0.7,
               bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, verbose=-1, seed=SEED,
               num_threads=0)
@@ -86,6 +90,7 @@ class FPLForecaster:
     iters: dict = field(default_factory=dict)
     boosters: dict = field(default_factory=dict)
     targets: tuple = tuple(TARGETS)
+    blend_w: float = 1.0
 
     def _X(self, F: pd.DataFrame) -> pd.DataFrame:
         X = F.reindex(columns=self.features).copy()
@@ -98,8 +103,12 @@ class FPLForecaster:
             col, obj = TARGETS[name]
             p = dict(PARAMS, objective=obj)
             y = Y[col].to_numpy(float)
-            dtr = lgb.Dataset(X[train], y[train])
-            dva = lgb.Dataset(X[valid], y[valid], reference=dtr)
+            tr, va = train, valid
+            if name in CONDITIONAL:
+                cond = Y[CONDITIONAL[name]].to_numpy(float) == 1
+                tr, va = train & cond, valid & cond
+            dtr = lgb.Dataset(X[tr], y[tr])
+            dva = lgb.Dataset(X[va], y[va], reference=dtr)
             b = lgb.train(p, dtr, 6000, valid_sets=[dva],
                           callbacks=[lgb.early_stopping(150, verbose=False)])
             self.boosters[name], self.iters[name] = b, b.best_iteration
@@ -111,15 +120,32 @@ class FPLForecaster:
         for name in self.targets:
             col, obj = TARGETS[name]
             self.iters[name] = max(int(self.iters[name] * scale), 1)
+            m = mask & (Y[CONDITIONAL[name]].to_numpy(float) == 1) if name in CONDITIONAL else mask
             self.boosters[name] = lgb.train(dict(PARAMS, objective=obj),
-                                            lgb.Dataset(X[mask], Y[col].to_numpy(float)[mask]),
+                                            lgb.Dataset(X[m], Y[col].to_numpy(float)[m]),
                                             self.iters[name])
         return self
 
     def predict(self, F) -> pd.DataFrame:
         X = self._X(F)
-        return pd.DataFrame({n: b.predict(X, num_iteration=self.iters[n])
-                             for n, b in self.boosters.items()}, index=F.index)
+        out = pd.DataFrame({n: b.predict(X, num_iteration=self.iters[n])
+                            for n, b in self.boosters.items()}, index=F.index)
+        if {"p_play", "pts_if_played", "points"} <= set(out.columns):
+            out["direct"] = out["points"]
+            out["hurdle"] = out["p_play"].clip(0, 1) * out["pts_if_played"]
+            out["points"] = self.blend_w * out["direct"] + (1 - self.blend_w) * out["hurdle"]
+        return out
+
+    def fit_blend(self, F, Y, valid) -> float:
+        """Least-squares blend weight between the direct and hurdle heads, on validation rows only."""
+        self.blend_w = 1.0
+        P = self.predict(F)
+        y = Y["total_points"].to_numpy(float)[valid]
+        d, h = P["direct"].to_numpy()[valid], P["hurdle"].to_numpy()[valid]
+        grid = np.linspace(0, 1, 101)
+        mse = [np.mean((w * d + (1 - w) * h - y) ** 2) for w in grid]
+        self.blend_w = float(grid[int(np.argmin(mse))])
+        return self.blend_w
 
     def importance(self, name="points") -> pd.Series:
         b = self.boosters[name]
@@ -130,11 +156,12 @@ class FPLForecaster:
         path.mkdir(parents=True, exist_ok=True)
         for n, b in self.boosters.items():
             b.save_model(str(path / f"fpl_{n}.lgb"))
-        (path / "fpl_meta.json").write_text(json.dumps({"features": self.features, "iters": self.iters}))
+        (path / "fpl_meta.json").write_text(json.dumps({"features": self.features, "iters": self.iters,
+                                                        "blend_w": self.blend_w}))
 
     @classmethod
     def load(cls, path: Path):
         meta = json.loads((path / "fpl_meta.json").read_text())
-        m = cls(meta["features"], meta["iters"])
-        m.boosters = {n: lgb.Booster(model_file=str(path / f"fpl_{n}.lgb")) for n in TARGETS}
+        m = cls(meta["features"], meta["iters"], blend_w=meta.get("blend_w", 1.0))
+        m.boosters = {n: lgb.Booster(model_file=str(path / f"fpl_{n}.lgb")) for n in meta["iters"]}
         return m

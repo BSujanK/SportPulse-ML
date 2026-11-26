@@ -31,7 +31,7 @@ def run(refresh: bool = False) -> dict:
     # Penalty shoot-outs (period 5) are not part of the match: drop them everywhere.
     shots, passes, carries, defense = (t[t.period < 5].reset_index(drop=True)
                                        for t in (shots, passes, carries, defense))
-    shots = shots.merge(matches[["match_id", "label"]], on="match_id")
+    shots = shots.merge(matches[["match_id", "label", "date", "gender"]], on="match_id")
     log.info("xG model on %d shots", len(shots))
     booster, xg, xg_metrics = XG.train_and_evaluate(shots, RECENT)
     shots["xg"] = xg.to_numpy()
@@ -73,7 +73,7 @@ def run(refresh: bool = False) -> dict:
     for c in ("home_formation", "away_formation"):
         mt[c] = mt[c].map(lambda v: "-".join(str(int(float(v)))) if pd.notna(v) else None)
 
-    shot_cols = ["match_id", "label", "team", "player", "period", "minute", "second", "x", "y", "end_x", "end_y",
+    shot_cols = ["match_id", "label", "gender", "team", "player", "period", "minute", "second", "x", "y", "end_x", "end_y",
                  "body_part", "shot_type", "play_pattern", "outcome", "goal", "xg", "sb_xg", "assist_player",
                  "assist_type", "distance"]
     shots[shot_cols].to_parquet(OUT / "shots.parquet", index=False)

@@ -104,6 +104,30 @@ def _future_rows(teams, leagues, players_raw: pd.DataFrame, upcoming: pd.DataFra
     return out
 
 
+TEAM_XG = ["tm_xg6", "tm_xga6", "opp_xg6", "opp_xga6", "tm_goals6", "opp_goals_against6"]
+
+
+def add_team_xg_features(full: pd.DataFrame) -> pd.DataFrame:
+    """Team- and opponent-level rolling xG for/against from the players' own FPL xG (lagged).
+
+    Team xG in a fixture = sum of its players' xG; team xGA = max of its players' xG conceded
+    (the goalkeeper plays the full match). Rolling means over the previous 6 fixtures.
+    """
+    g = full.groupby(["team", "kickoff"], sort=False)
+    tf = pd.DataFrame({
+        "xg": g["expected_goals"].sum(min_count=1), "xga": g["expected_goals_conceded"].max(),
+        "goals": g["goals_scored"].sum(min_count=1), "conceded": g["goals_conceded"].max(),
+        "opponent": g["opponent"].first()}).reset_index().sort_values(["team", "kickoff"])
+    roll = lambda c: tf.groupby("team")[c].transform(lambda x: x.shift(1).rolling(6, min_periods=1).mean())  # noqa: E731
+    tf["tm_xg6"], tf["tm_xga6"] = roll("xg"), roll("xga")
+    tf["tm_goals6"], tf["tm_conceded6"] = roll("goals"), roll("conceded")
+    opp = tf[["team", "kickoff", "tm_xg6", "tm_xga6", "tm_conceded6"]].rename(
+        columns={"team": "opponent", "tm_xg6": "opp_xg6", "tm_xga6": "opp_xga6", "tm_conceded6": "opp_goals_against6"})
+    tf = tf.merge(opp, on=["opponent", "kickoff"], how="left")
+    out = full[["team", "kickoff"]].merge(tf[["team", "kickoff"] + TEAM_XG], on=["team", "kickoff"], how="left")
+    return out[TEAM_XG].set_axis(full.index)
+
+
 def _top_xi(df: pd.DataFrame, col: str) -> float:
     """Mean actual points of the 11 highest-ranked players per gameweek."""
     return float(df.groupby(["season", "round"]).apply(
@@ -139,6 +163,9 @@ def run(refresh: bool = False) -> dict:
     log.info("Player features for %d rows", len(full))
     F = player_features(full)
     F[CONTEXT] = full[CONTEXT].to_numpy(float)
+    F[TEAM_XG] = add_team_xg_features(full).to_numpy(float)
+    F["xg_share6"] = (F["expected_goals_r6"] / F["tm_xg6"].replace(0, np.nan)).clip(upper=1)
+    F["xa_share6"] = (F["expected_assists_r6"] / F["tm_xg6"].replace(0, np.nan)).clip(upper=1)
     # FPL's own pre-deadline expected points: carries injury / team news, used like a market prior
     F["fpl_xp"] = full["xP"].to_numpy(float)
     feature_cols = [c for c in F.columns]
@@ -157,6 +184,8 @@ def run(refresh: bool = False) -> dict:
     # ~15-50% in the archive), so it is reported as research and not deployed.
     stats_cols = [c for c in feature_cols if c != "fpl_xp"]
     model = FPLForecaster(stats_cols).fit(F, full, train, valid)
+    w = model.fit_blend(F, full, valid)
+    log.info("Direct/hurdle blend weight on direct head: %.2f", w)
     P = model.predict(F)
     xp_variant = FPLForecaster(feature_cols, targets=("points",)).fit(F, full, train, valid)
     P_xp = xp_variant.predict(F)["points"]
@@ -164,6 +193,8 @@ def run(refresh: bool = False) -> dict:
     # ── evaluation ──────────────────────────────────────────────────────────
     T = full[test].copy()
     T["pred"] = P.loc[test, "points"].to_numpy()
+    T["pred_direct"] = P.loc[test, "direct"].to_numpy()
+    T["pred_hurdle"] = P.loc[test, "hurdle"].to_numpy()
     T["pred_xp"] = P_xp[test].to_numpy()
     T["form6"] = F.loc[test, "total_points_r6"].fillna(0).to_numpy()
     T["form_ewm"] = F.loc[test, "total_points_ewm"].fillna(0).to_numpy()
@@ -180,6 +211,10 @@ def run(refresh: bool = False) -> dict:
     leaderboard = [
         {"model": "SportPulse LightGBM (production)", **reg(T["pred"].to_numpy(), xm),
          "top_xi": _top_xi(T[xm], "pred")},
+        {"model": "Direct points head only", **reg(T["pred_direct"].to_numpy(), xm),
+         "top_xi": _top_xi(T[xm], "pred_direct")},
+        {"model": "Hurdle head only (P(plays) × points if plays)", **reg(T["pred_hurdle"].to_numpy(), xm),
+         "top_xi": _top_xi(T[xm], "pred_hurdle")},
         {"model": "Research: SportPulse + archived FPL xP", **reg(T["pred_xp"].to_numpy(), xm),
          "top_xi": _top_xi(T[xm], "pred_xp")},
         {"model": "FPL official xP", **reg(T["xP"].to_numpy(), xm), "top_xi": _top_xi(T[xm], "xP")},
@@ -265,7 +300,7 @@ def run(refresh: bool = False) -> dict:
                  "context_join_coverage": ctx_cov,
                  "train_rows": int(train.sum()), "valid_rows": int(valid.sum()), "test_rows": int(test.sum())},
         "leaderboard": leaderboard, "gw_spearman_active": gw_rho, "classifiers": cls,
-        "by_season": by_season, "iters": model.iters,
+        "by_season": by_season, "iters": model.iters, "blend_w_direct": model.blend_w,
         "importance": imp.round(4).to_dict(), "runtime_sec": round(time.time() - t0, 1),
     }
     (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str))

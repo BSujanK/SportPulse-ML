@@ -24,8 +24,8 @@ SportPulse ML is an end-to-end machine-learning system:
   next gameweek of 2026-27.
 - A **national-team forecaster** (tournament-weighted World Football Elo + LightGBM) with data through
   November 2026, including the 2026 World Cup.
-- An **analyst layer on StatsBomb event data** (1,999 matches): an xG model on par with StatsBomb's commercial
-  xG, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
+- An **analyst layer on StatsBomb event data** (3,961 men's and women's matches): an xG model that outperforms
+  StatsBomb's commercial xG on unseen 2022–24 tournaments, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
   scouting notes, match reports with xG race, shot maps and pass networks.
 - Player valuation, development-forecast and style-archetype models (EA FIFA attribute data).
 - A Hugging Face–style Streamlit UI in the original black and plasma-orange theme.
@@ -35,7 +35,7 @@ SportPulse ML is an end-to-end machine-learning system:
 | Club matches + odds (football-data.co.uk via xgabora) | 238,934 matches, 38 leagues | 2026-09-03 (+ Premier League live to GW10, 2026-11-08) |
 | Fantasy Premier League (vaastav) | 260k player-fixtures, 2016-17 → 2026-27 | GW10, 2026-11-08 |
 | International results (martj42) | 49k internationals since 1872 | 2026-11-17 |
-| StatsBomb open data (events + freeze-frames) | 1,999 matches, 50k shots, 2M passes | Euro 2024 / Copa América 2024 / Bundesliga 2023-24 |
+| StatsBomb open data (events + freeze-frames) | 3,961 matches, 101k shots, 3.8M passes | Euro 2024 / Copa América 2024 / Bundesliga 2023-24 |
 | EA FIFA 15–22 (sofifa) | 142k player-seasons | 2021-22 snapshot |
 
 <!-- RESULTS:START -->
@@ -68,8 +68,10 @@ SportPulse ML is an end-to-end machine-learning system:
 
 | Model | Points MAE ↓ | Spearman ↑ | Best-XI pts/player ↑ |
 |---|---|---|---|
-| **SportPulse LightGBM (production)** | 0.999 | 0.719 | **4.65** |
-| Research: SportPulse + archived FPL xP | 0.873 | 0.707 | 6.34 |
+| **SportPulse LightGBM (production)** | 0.998 | 0.720 | **4.66** |
+| Direct points head only | 0.999 | 0.719 | 4.68 |
+| Hurdle head only (P(plays) × points if plays) | 0.991 | 0.723 | 4.71 |
+| Research: SportPulse + archived FPL xP | 0.874 | 0.706 | 6.55 |
 | FPL official xP | 1.092 | 0.327 | 3.41 |
 | Form (last 6 mean) | 1.099 | 0.686 | 3.83 |
 | Form (EWM) | 1.095 | 0.657 | 4.14 |
@@ -85,13 +87,13 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 | World Football Elo (logistic) | 0.1695 | 61.3% | 0.1598 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
 
-### Expected goals, StatsBomb open data (1,999 matches, 49,257 non-penalty shots)
+### Expected goals, StatsBomb open data (3,961 matches, 99,746 non-penalty shots)
 
 | Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |
 |---|---|---|---|---|
-| **SportPulse xG (LightGBM)** | 0.2507 | 0.8109 | 0.2548 | 0.0072 |
-| StatsBomb xG (commercial) | 0.2503 | 0.8123 | 0.2563 | 0.0104 |
-| Distance + angle logistic | 0.2797 | 0.7451 | — | — |
+| **SportPulse xG (LightGBM)** | 0.2619 | 0.8117 | 0.2527 | 0.0097 |
+| StatsBomb xG (commercial) | 0.2660 | 0.8048 | 0.2563 | 0.0104 |
+| Distance + angle logistic | 0.2952 | 0.7368 | — | — |
 <!-- RESULTS:END -->
 
 ## What changed from v1
@@ -179,10 +181,10 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
 * **Ingest** streams each match's events and keeps compact tables: shots (with freeze-frame geometry), passes,
   carries, defensive actions and line-ups. Penalty shoot-outs are excluded, and full names are mapped to common
   names.
-* **xG**: LightGBM with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase, the assisting
-  pass and freeze-frame features (defenders and teammates in the shooting cone, goalkeeper position and
+* **xG**: LightGBM (Optuna-tuned) with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase,
+  the assisting pass, a men's/women's flag and freeze-frame features (defenders and teammates in the shooting cone, goalkeeper position and
   distance, nearest defender, pressure count). Validated out-of-fold by match and on a temporal hold-out
-  (trained on ≤ 2021, tested on 2022–24 tournaments), benchmarked against StatsBomb's own xG.
+  (trained on matches before July 2022, tested on 2022–24 men's tournaments), benchmarked against StatsBomb's own xG.
 * **Expected threat** (Singh 2018), a 16 × 12 Markov grid from 3.5M passes and carries, gives each move's
   xT added.
 * **Team style profiles** per competition, with percentiles: npxG for/against, possession, field tilt,
@@ -216,7 +218,7 @@ team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Fores
 | Leaderboard | Benchmark vs bookmaker and rating baselines, per-league, monthly, betting backtest |
 | Leagues | Live standings (2026-27), power ratings from the model's own state, Elo history |
 | Opponent Report | Pre-match scouting of any team in the StatsBomb competitions: style radar, cues, shot and pressing maps, key players |
-| Match Analysis | xG race, shot map, pass networks and team stats for any of 1,999 matches; xG model card |
+| Match Analysis | xG race, shot map, pass networks and team stats for any of 3,961 matches; xG model card |
 | PL Player Forecaster | Next-gameweek projections for every Premier League player, a budget-constrained best XI, evaluation vs FPL xP |
 | National Teams | World Elo ranking (Nov 2026), neutral-venue fixture predictor, World Cup 2026 evaluation |
 | Player Scout | Fair value vs listed, rating forecast with interval, similar players, undervalued finder, rising stars |

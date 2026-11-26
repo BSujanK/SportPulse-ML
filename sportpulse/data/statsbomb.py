@@ -26,14 +26,14 @@ log = logging.getLogger(__name__)
 BASE = "https://raw.githubusercontent.com/statsbomb/open-data/master/data"
 OUT = config.PROCESSED_DIR / "statsbomb"
 
-# (competition_id, season_id). Recent competitions form the analysis set; the
-# 2015/16 big-five seasons and older tournaments add shot volume for the xG model.
-COMPETITIONS = [
-    (43, 106), (55, 282), (223, 282), (1267, 107), (9, 281), (7, 235), (44, 107),   # 2022-2024
-    (55, 43), (7, 108), (11, 90), (43, 3),                                          # 2018-2022
-    (2, 27), (11, 27), (12, 27), (9, 27), (7, 27), (16, 4), (16, 1),                # 2015-2019
-]
+# Every competition-season in the open data (men's and women's), discovered from competitions.json.
+def competitions() -> list[tuple[int, int]]:
+    return [(c["competition_id"], c["season_id"]) for c in _get_json(f"{BASE}/competitions.json")]
+
+
 GOAL_X, POST_L, POST_R = 120.0, 36.0, 44.0
+WOMENS = {"FA Women's Super League", "NWSL", "Frauen Bundesliga", "Liga F", "Serie A Women",
+          "UEFA Women's Euro", "Women's World Cup"}
 DEF_TYPES = {"Pressure", "Duel", "Interception", "Ball Recovery", "Block", "Clearance",
              "Foul Committed", "Dribbled Past"}
 
@@ -52,11 +52,16 @@ def _get_json(url: str, retries: int = 4):
 
 def load_match_list() -> pd.DataFrame:
     rows = []
-    for c, s in COMPETITIONS:
-        for m in _get_json(f"{BASE}/matches/{c}/{s}.json"):
+    comp_list = competitions()
+    with ThreadPoolExecutor(16) as ex:
+        lists = list(ex.map(lambda cs: (cs, _get_json(f"{BASE}/matches/{cs[0]}/{cs[1]}.json")), comp_list))
+    for (c, s), ms in lists:
+        for m in ms:
             rows.append({
                 "match_id": m["match_id"], "competition_id": c, "season_id": s,
                 "competition": m["competition"]["competition_name"], "season": m["season"]["season_name"],
+                "gender": "female" if "women" in m["competition"]["competition_name"].lower()
+                          or m["competition"]["competition_name"] in WOMENS else "male",
                 "date": m["match_date"], "kickoff": m.get("kick_off"),
                 "home": m["home_team"]["home_team_name"], "away": m["away_team"]["away_team_name"],
                 "home_score": m["home_score"], "away_score": m["away_score"],
@@ -172,15 +177,19 @@ def parse_match(match_id: int) -> dict[str, list]:
 
 
 def ingest(force: bool = False, workers: int = 16) -> dict[str, pd.DataFrame]:
+    """Incremental: only matches not already parsed are downloaded."""
     OUT.mkdir(parents=True, exist_ok=True)
     names = ["shots", "passes", "carries", "defense", "lineups"]
-    if not force and all((OUT / f"{n}.parquet").exists() for n in names + ["matches"]):
-        return {n: pd.read_parquet(OUT / f"{n}.parquet") for n in names + ["matches"]}
+    have = {n: pd.read_parquet(OUT / f"{n}.parquet") for n in names
+            if (OUT / f"{n}.parquet").exists() and not force}
     matches = load_match_list()
+    done = set(have["shots"].match_id) if "shots" in have else set()
+    todo = [int(m) for m in matches.match_id if int(m) not in done]
+    log.info("StatsBomb: %d matches listed, %d new to parse", len(matches), len(todo))
     acc = {n: [] for n in names}
     failed = []
     with ThreadPoolExecutor(workers) as ex:
-        futs = {ex.submit(parse_match, int(m)): m for m in matches["match_id"]}
+        futs = {ex.submit(parse_match, m): m for m in todo}
         for i, f in enumerate(as_completed(futs), 1):
             try:
                 r = f.result()
@@ -188,13 +197,16 @@ def ingest(force: bool = False, workers: int = 16) -> dict[str, pd.DataFrame]:
                     acc[n].extend(r[n])
             except Exception as e:  # noqa: BLE001 - skip broken matches, report count
                 failed.append((futs[f], str(e)[:80]))
-            if i % 200 == 0:
-                log.info("parsed %d / %d matches", i, len(futs))
+            if i % 250 == 0:
+                log.info("parsed %d / %d new matches", i, len(todo))
     if failed:
         log.warning("%d matches failed: %s", len(failed), failed[:3])
-        matches = matches[~matches.match_id.isin([m for m, _ in failed])]
-    out = {n: pd.DataFrame(acc[n]) for n in names}
-    out["matches"] = matches.reset_index(drop=True)
+    out = {}
+    for n in names:
+        new = pd.DataFrame(acc[n])
+        out[n] = pd.concat([have[n], new], ignore_index=True) if n in have and len(new) else (have.get(n, new))
+    parsed = set(out["shots"].match_id) | set(out["lineups"].match_id)
+    out["matches"] = matches[matches.match_id.isin(parsed)].reset_index(drop=True)
     for n, d in out.items():
         d.to_parquet(OUT / f"{n}.parquet", index=False)
     return out
