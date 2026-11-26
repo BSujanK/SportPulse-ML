@@ -12,7 +12,7 @@ lb = {r["model"]: r for r in mm["leaderboard"]}
 prod, mkt, fund = (lb["SportPulse Market-Residual (production)"], lb["Bookmaker market (Shin)"],
                    lb["SportPulse Fundamentals (no odds)"])
 
-ui.repo_header("sportpulse", "match-outcome-market-residual", "⚡", badge="● live",
+ui.repo_header("sportpulse", "match-outcome-market-residual", "zap", badge="● live",
                tag_items=[("task", "Tabular Classification"), ("task", "1X2 · O/U · BTTS · Correct score"),
                           ("lib", "LightGBM"), ("lib", "Optuna"), ("ds", "club-matches-2000-2026"),
                           ("", f"trained through {mm['production']['trained_through']}"), ("lic", "mit")])
@@ -73,23 +73,22 @@ with right:
                               yaxis=dict(autorange="reversed"), height=330)
             ui.plot(fig)
             f = r.features
-            with st.expander("Pre-match feature vector"):
-                st.dataframe(pd.DataFrame({
-                    "feature": ["Elo (home, away)", "pi-rating home@home / away@away", "pi expected GD",
-                                "Form PPG short (H, A)", "Form GD short (H, A)", "Rest days (H, A)"],
-                    "value": [f"{f['elo_h']:.0f} · {f['elo_a']:.0f}",
-                              f"{f['pi_h_home']:.2f} · {f['pi_a_away']:.2f}", f"{f['pi_gd']:+.2f}",
-                              f"{f['h_s_pts']:.2f} · {f['a_s_pts']:.2f}",
-                              f"{f['h_s_gf'] - f['h_s_ga']:+.2f} · {f['a_s_gf'] - f['a_s_ga']:+.2f}",
-                              f"{f['rest_h']:.0f} · {f['rest_a']:.0f}"]}),
-                    hide_index=True, use_container_width=True)
+            ui.section("Model inputs", icon="activity")
+            st.markdown(ui.kv([
+                ("Elo · home / away", f"{f['elo_h']:.0f} / {f['elo_a']:.0f}"),
+                ("pi-rating · home@home / away@away", f"{f['pi_h_home']:.2f} / {f['pi_a_away']:.2f}"),
+                ("pi expected goal difference", f"{f['pi_gd']:+.2f}"),
+                ("Form points per game · home / away", f"{f['h_s_pts']:.2f} / {f['a_s_pts']:.2f}"),
+                ("Form goal difference · home / away",
+                 f"{f['h_s_gf'] - f['h_s_ga']:+.2f} / {f['a_s_gf'] - f['a_s_ga']:+.2f}"),
+                ("Rest days · home / away", f"{f['rest_h']:.0f} / {f['rest_a']:.0f}")]), unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MODEL CARD / EVALUATION
 # ══════════════════════════════════════════════════════════════════════════════
 with left:
-    t_card, t_eval, t_recent, t_feat = st.tabs(["📄 Model card", "📊 Evaluation", "🕒 Recent predictions",
-                                                "🧩 Features"])
+    t_card, t_eval, t_recent, t_feat = st.tabs([":material/description: Model card", ":material/analytics: Evaluation", ":material/history: Recent predictions",
+                                                ":material/data_object: Features"])
     with t_card:
         d = mm["data"]
         st.markdown(f"""
@@ -162,10 +161,10 @@ training, tuning, early stopping or calibration. After evaluation the model is r
         show["Match"] = show["home"] + " – " + show["away"]
         show["Score"] = show["hg"].astype(str) + "–" + show["ag"].astype(str)
         show["Pick"] = np.array(["H", "D", "A"])[show[["p_h", "p_d", "p_a"]].to_numpy().argmax(1)]
-        show["✓"] = np.where(show["Pick"] == show["result"], "✅", "❌")
+        show["Correct"] = show["Pick"] == show["result"]
         st.dataframe(
             show[["date", "division", "Match", "Score", "p_h", "p_d", "p_a", "pm_h", "pm_d", "pm_a",
-                  "Pick", "✓", "xg_h", "xg_a"]],
+                  "Pick", "Correct", "xg_h", "xg_a"]],
             hide_index=True, use_container_width=True, height=520,
             column_config={
                 "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
@@ -175,6 +174,7 @@ training, tuning, early stopping or calibration. After evaluation the model is r
                 "pm_h": st.column_config.NumberColumn("Mkt H", format="%.2f"),
                 "pm_d": st.column_config.NumberColumn("Mkt D", format="%.2f"),
                 "pm_a": st.column_config.NumberColumn("Mkt A", format="%.2f"),
+                "Correct": st.column_config.CheckboxColumn("Correct"),
                 "xg_h": st.column_config.NumberColumn("xG H", format="%.2f"),
                 "xg_a": st.column_config.NumberColumn("xG A", format="%.2f")})
         st.caption("Out-of-sample predictions: every row was predicted by the model trained before the test window.")

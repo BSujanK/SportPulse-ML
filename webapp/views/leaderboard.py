@@ -6,20 +6,20 @@ from webapp import state, ui
 
 mm = state.match_metrics()
 d = mm["data"]
-ui.repo_header("sportpulse", "football-forecasting-leaderboard", "🏆", badge="● running",
+ui.repo_header("sportpulse", "football-forecasting-leaderboard", "trophy", badge="● running",
                tag_items=[("", "Space"), ("task", "Benchmark"), ("ds", "club-matches-2000-2026"),
                           ("", f"test window {d['test'][0]} → {d['test'][1]}"),
                           ("", f"{d['test_with_odds']:,} matches")])
-st.markdown(f'<p class="hf-mono">Evaluated on {d["test_with_odds"]:,} out-of-sample matches across '
-            f'{d["divisions"]} leagues. Lower RPS / log-loss / Brier is better.</p>', unsafe_allow_html=True)
+st.markdown(f'<div class="hf-mono">Evaluated on {d["test_with_odds"]:,} out-of-sample matches across '
+            f'{d["divisions"]} leagues. Lower RPS / log-loss / Brier is better.</div>', unsafe_allow_html=True)
 
-t1, t2, t3, t4 = st.tabs(["🏅 1X2 leaderboard", "🌍 By league", "📉 Over time", "💰 Betting backtest & O/U"])
+t1, t2, t3, t4 = st.tabs([":material/leaderboard: 1X2 leaderboard", ":material/flag: By league", ":material/show_chart: Over time", ":material/account_balance: Betting backtest & O/U"])
 
 with t1:
     df = pd.DataFrame(mm["leaderboard"])
     df.insert(0, "Rank", range(1, len(df) + 1))
-    df["Type"] = df["model"].map(lambda m: "🟠 SportPulse" if m.startswith("SportPulse") or m.startswith("Poisson")
-                                 else ("📈 Market" if "market" in m.lower() else "⚪ Baseline"))
+    df["Type"] = df["model"].map(lambda m: "SportPulse" if m.startswith("SportPulse") or m.startswith("Poisson")
+                                 else ("Market" if "market" in m.lower() else "Baseline"))
     df["accuracy"] *= 100
     df["ece"] *= 100
     st.dataframe(
@@ -37,9 +37,15 @@ with t1:
             "outcomes. For reference, the winning entry of the 2017 Soccer Prediction Challenge "
             "(no betting data) scored ≈0.206 on its own test set. <b>Accuracy</b> alone is a weak metric: "
             "always picking the favourite already gets ~50%.")
-    if mm.get("tuning"):
-        with st.expander("Hyper-parameter search (Optuna TPE)"):
-            st.json(mm["tuning"])
+    fp = mm["model"]["fund_params"]
+    ui.section("Production configuration", icon="layers")
+    st.markdown(ui.kv([("Fundamentals booster", f"{mm['model']['fund_iters']} trees · {fp['num_leaves']} leaves · "
+                                                f"lr {fp['learning_rate']}"),
+                       ("Regularisation", f"L1 {fp.get('lambda_l1', 0):.2f} · L2 {fp['lambda_l2']:.1f} · "
+                                          f"min leaf {fp['min_data_in_leaf']}"),
+                       ("Market-residual booster", f"{mm['model']['resid_iters']} trees"),
+                       ("Temperature (fund. / final)", f"{mm['model']['t_fund']:.3f} / {mm['model']['t_final']:.3f}"),
+                       ("Hyper-parameter search", "Optuna TPE, 30 trials, 2023-24 log-loss")]), unsafe_allow_html=True)
 
 with t2:
     pdv = pd.DataFrame(mm["per_division"])
@@ -98,6 +104,6 @@ with t4:
                     ui.kpi("Market log-loss", f"{ou['logloss_market']:.4f}"),
                     ui.kpi("Base-rate log-loss", f"{ou['logloss_base']:.4f}")])
         g = mm["goals"]
-        st.markdown(f"<p class='hf-mono'>n = {ou['n']:,} · accuracy model {ou['acc_model'] * 100:.1f}% vs "
+        st.markdown(f"<div class='hf-mono'>n = {ou['n']:,} · accuracy model {ou['acc_model'] * 100:.1f}% vs "
                     f"market {ou['acc_market'] * 100:.1f}% · goal MAE home {g['mae_home']:.3f} / "
-                    f"away {g['mae_away']:.3f} · Dixon-Coles ρ = {g['rho']:.3f}</p>", unsafe_allow_html=True)
+                    f"away {g['mae_away']:.3f} · Dixon-Coles ρ = {g['rho']:.3f}</div>", unsafe_allow_html=True)

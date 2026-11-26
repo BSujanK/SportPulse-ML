@@ -11,7 +11,7 @@ from sportpulse.inference import CALENDAR_YEAR_LEAGUES as CALENDAR_YEAR
 P = state.predictor()
 rec = state.recent_matches()
 
-ui.repo_header("sportpulse", "league-intelligence", "📊",
+ui.repo_header("sportpulse", "league-intelligence", "chart",
                tag_items=[("", "Space"), ("task", "Standings · Power ratings"),
                           ("ds", "club-matches-2000-2026"), ("", f"latest match {rec.date.max():%Y-%m-%d}")])
 
@@ -28,7 +28,7 @@ seasons = sorted(r.season.unique(), reverse=True)
 season = c2.selectbox("Season", seasons)
 rs = r[r.season == season]
 
-t1, t2, t3 = st.tabs(["🏆 Standings", "⚡ Power ratings (live model state)", "📈 Elo history"])
+t1, t2, t3 = st.tabs([":material/format_list_numbered: Standings", ":material/bolt: Power ratings (live model state)", ":material/timeline: Elo history"])
 with t1:
     tbl = league_table(rs)
     ui.kpi_row([ui.kpi("Matches", f"{len(rs):,}"),

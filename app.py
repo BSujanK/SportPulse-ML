@@ -1,4 +1,4 @@
-"""SportPulse ML — Streamlit entry point (Hugging Face Space compatible).
+"""SportPulse ML — Streamlit entry point (Hugging Face Space / Streamlit Cloud compatible).
 
     streamlit run app.py
 """
@@ -10,38 +10,52 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-st.set_page_config(page_title="SportPulse ML · Football forecasting hub", page_icon="⚽",
+st.set_page_config(page_title="SportPulse ML", page_icon=str(ROOT / "webapp" / "assets" / "mark.svg"),
                    layout="wide", initial_sidebar_state="collapsed")
 
 from webapp import ui  # noqa: E402
 from webapp.state import artifacts_ready  # noqa: E402
 
 ui.inject_css()
+st.logo(str(ROOT / "webapp" / "assets" / "logo.svg"), size="large")
 
 if not artifacts_ready():
-    st.error("Model artifacts not found. Train them first:")
-    st.code("python -m sportpulse.train all", language="bash")
+    st.error("Model artifacts not found. Train them first with `python -m sportpulse.train all`.")
     st.stop()
 
 V = ROOT / "webapp" / "views"
-pages = [
-    st.Page(str(V / "hub.py"), title="Hub", icon="🏠", default=True),
-    st.Page(str(V / "match_forecaster.py"), title="Match Forecaster", icon="⚡", url_path="match-forecaster"),
-    st.Page(str(V / "leaderboard.py"), title="Leaderboard", icon="🏆", url_path="leaderboard"),
-    st.Page(str(V / "leagues.py"), title="Leagues", icon="📊", url_path="leagues"),
-    st.Page(str(V / "fpl.py"), title="PL Player Forecaster", icon="🎯", url_path="pl-player-forecaster"),
-    st.Page(str(V / "international.py"), title="National Teams", icon="🌍", url_path="national-teams"),
-    st.Page(str(V / "player_scout.py"), title="Player Scout", icon="🔎", url_path="player-scout"),
-    st.Page(str(V / "archetypes.py"), title="Archetypes", icon="🧬", url_path="archetypes"),
-    st.Page(str(V / "datasets.py"), title="Datasets", icon="🗂️", url_path="datasets"),
-]
-nav = st.navigation(pages, position="top")
+
+
+def page(file, title, icon, url=None, default=False):
+    return st.Page(str(V / file), title=title, icon=f":material/{icon}:", url_path=url, default=default)
+
+
+nav = st.navigation({
+    "": [page("hub.py", "Hub", "home", default=True)],
+    "Forecasting": [
+        page("match_forecaster.py", "Match Forecaster", "bolt", "match-forecaster"),
+        page("international.py", "National Teams", "public", "national-teams"),
+        page("leaderboard.py", "Leaderboard", "leaderboard", "leaderboard"),
+    ],
+    "Analysis": [
+        page("opponent_report.py", "Opponent Report", "shield", "opponent-report"),
+        page("match_analysis.py", "Match Analysis", "sports_soccer", "match-analysis"),
+        page("leagues.py", "Leagues", "table_chart", "leagues"),
+    ],
+    "Players": [
+        page("fpl.py", "PL Player Forecaster", "query_stats", "pl-player-forecaster"),
+        page("player_scout.py", "Player Scout", "person_search", "player-scout"),
+        page("archetypes.py", "Archetypes", "hub", "archetypes"),
+    ],
+    "Data": [page("datasets.py", "Datasets", "database", "datasets")],
+}, position="top")
 nav.run()
 
 st.markdown(
-    f'<div style="margin-top:48px;padding:18px 0;border-top:1px solid {ui.BORDER};'
-    f'color:{ui.DIM};font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">'
-    '<span>⚽ <b style="color:#ccc">SportPulse ML</b> · real-data football forecasting · MIT</span>'
-    '<span>Data: football-data.co.uk & clubelo (xgabora) · Fantasy Premier League (vaastav) · '
-    'international results (martj42) · EA Sports FIFA (sofifa)</span></div>',
+    f'<div class="hf-footer"><span><b>SportPulse ML</b> · football forecasting and analysis on real data · MIT</span>'
+    '<span>Data: football-data.co.uk &amp; clubelo (xgabora) · StatsBomb open data · Fantasy Premier League (vaastav) · '
+    'international results (martj42) · EA Sports FIFA (sofifa)</span></div>'
+    f'<style>.hf-footer{{margin-top:48px;padding:18px 0;border-top:1px solid {ui.BORDER};color:{ui.DIM};'
+    'font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}'
+    '.hf-footer b{color:#ccc}</style>',
     unsafe_allow_html=True)

@@ -9,13 +9,13 @@ df = state.players()
 pm = state.player_metrics()
 ed = int(df.edition.max())
 
-ui.repo_header("sportpulse", "player-scout", "🔎", badge="● live",
+ui.repo_header("sportpulse", "player-scout", "search", badge="● live",
                tag_items=[("task", "Tabular Regression"), ("task", "Quantile Regression"),
                           ("task", "Similarity Search"), ("lib", "LightGBM"),
                           ("ds", "ea-fifa-players-15-22"), ("", f"snapshot: FIFA {ed % 100}")])
 
-t_scout, t_under, t_rise, t_card = st.tabs(["🔎 Scout a player", "💎 Undervalued finder",
-                                            "🚀 Rising stars", "📄 Model card"])
+t_scout, t_under, t_rise, t_card = st.tabs([":material/person_search: Scout a player", ":material/savings: Undervalued finder",
+                                            ":material/trending_up: Rising stars", ":material/description: Model card"])
 
 FACE = ["pace", "shooting", "passing", "dribbling", "defending", "physic"]
 

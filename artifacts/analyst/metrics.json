@@ -1,0 +1,207 @@
+{
+  "xg": {
+    "non_penalty_cv": {
+      "SportPulse xG (LightGBM)": {
+        "log_loss": 0.2506955779286513,
+        "brier": 0.07088429124539893,
+        "auc": 0.810932140501555,
+        "ece": 0.0029405743846963183,
+        "xg_sum": 4694.914184148631,
+        "goals": 4712.0,
+        "n": 49257
+      },
+      "StatsBomb xG (commercial)": {
+        "log_loss": 0.2502844742740228,
+        "brier": 0.07045302025534336,
+        "auc": 0.812251255431022,
+        "ece": 0.007350705067903014,
+        "xg_sum": 4577.8012804037,
+        "goals": 4712.0,
+        "n": 49257
+      },
+      "Distance + angle logistic": {
+        "log_loss": 0.27974757353670904,
+        "brier": 0.07890660492767168,
+        "auc": 0.7450760219201848,
+        "ece": 0.012289177165070306,
+        "xg_sum": 4711.967656904439,
+        "goals": 4712.0,
+        "n": 49257
+      }
+    },
+    "penalty_rate": 0.7446808510638298,
+    "iters": 203,
+    "shots": 49821,
+    "non_penalty_shots": 49257,
+    "matches": 1999,
+    "temporal_recent_test": {
+      "SportPulse xG (LightGBM)": {
+        "log_loss": 0.25482668217998594,
+        "brier": 0.07206075234792049,
+        "auc": 0.8032931475646494,
+        "ece": 0.0071686044566373315,
+        "xg_sum": 628.594029428051,
+        "goals": 627.0,
+        "n": 6531
+      },
+      "StatsBomb xG (commercial)": {
+        "log_loss": 0.25633897288189955,
+        "brier": 0.07238713203391586,
+        "auc": 0.8025504023979633,
+        "ece": 0.010432369842367221,
+        "xg_sum": 618.8453031745,
+        "goals": 627.0,
+        "n": 6531
+      },
+      "n": 6531,
+      "competitions": [
+        "1. Bundesliga 2023/2024",
+        "African Cup of Nations 2023",
+        "Copa America 2024",
+        "FIFA World Cup 2022",
+        "Ligue 1 2022/2023",
+        "Major League Soccer 2023",
+        "UEFA Euro 2024"
+      ]
+    },
+    "importance": {
+      "ff_gk_dist_shooter": 0.3542,
+      "angle": 0.1275,
+      "ff_nearest_def": 0.0651,
+      "distance": 0.0497,
+      "ff_gk_off_line": 0.0434,
+      "ff_def_in_cone": 0.0407,
+      "ff_gk_dist_goal": 0.0357,
+      "body_part": 0.0336,
+      "open_goal": 0.0332,
+      "dy": 0.0322,
+      "ff_gk_in_cone": 0.031,
+      "x": 0.0288,
+      "assist_x": 0.0225,
+      "aerial_won": 0.0207,
+      "y": 0.0167,
+      "assist_type": 0.0133,
+      "assist_height": 0.0126,
+      "technique": 0.0083,
+      "ff_def_within_5": 0.0073,
+      "play_pattern": 0.0068,
+      "shot_type": 0.0035,
+      "ff_def_within_2": 0.0035,
+      "one_on_one": 0.003,
+      "first_time": 0.0026,
+      "ff_mates_in_cone": 0.0025,
+      "under_pressure": 0.0015,
+      "assisted": 0.0002,
+      "follows_dribble": 0.0,
+      "ff_available": 0.0
+    },
+    "calibration": [
+      [
+        0.011073580752795825,
+        0.01071863580998782,
+        4105
+      ],
+      [
+        0.016747113782046224,
+        0.02095006090133983,
+        4105
+      ],
+      [
+        0.02256764260977368,
+        0.018762183235867445,
+        4104
+      ],
+      [
+        0.028108358114363415,
+        0.028014616321559074,
+        4105
+      ],
+      [
+        0.03432536097655949,
+        0.03215590742996346,
+        4105
+      ],
+      [
+        0.0419991024915735,
+        0.039473684210526314,
+        4104
+      ],
+      [
+        0.052040056229395386,
+        0.058465286236297195,
+        4105
+      ],
+      [
+        0.0658826693561863,
+        0.07064555420219244,
+        4105
+      ],
+      [
+        0.08742359368055283,
+        0.09502923976608187,
+        4104
+      ],
+      [
+        0.12701993478506254,
+        0.12375152253349574,
+        4105
+      ],
+      [
+        0.21357969853671363,
+        0.21120584652862362,
+        4105
+      ],
+      [
+        0.4429761711423249,
+        0.4387332521315469,
+        4105
+      ]
+    ]
+  },
+  "data": {
+    "matches": 1999,
+    "competitions": [
+      "1. Bundesliga 2015/2016",
+      "1. Bundesliga 2023/2024",
+      "African Cup of Nations 2023",
+      "Champions League 2017/2018",
+      "Champions League 2018/2019",
+      "Copa America 2024",
+      "FIFA World Cup 2018",
+      "FIFA World Cup 2022",
+      "La Liga 2015/2016",
+      "La Liga 2020/2021",
+      "Ligue 1 2015/2016",
+      "Ligue 1 2021/2022",
+      "Ligue 1 2022/2023",
+      "Major League Soccer 2023",
+      "Premier League 2015/2016",
+      "Serie A 2015/2016",
+      "UEFA Euro 2020",
+      "UEFA Euro 2024"
+    ],
+    "recent_competitions": [
+      "1. Bundesliga 2023/2024",
+      "African Cup of Nations 2023",
+      "Copa America 2024",
+      "FIFA World Cup 2022",
+      "Ligue 1 2022/2023",
+      "Major League Soccer 2023",
+      "UEFA Euro 2024"
+    ],
+    "shots": 49821,
+    "passes": 1977651,
+    "carries": 1514508,
+    "defensive_actions": 1238514,
+    "players": 5094,
+    "last_match": "2024-07-15"
+  },
+  "xt": {
+    "grid": [
+      16,
+      12
+    ],
+    "max": 0.27743365834698575
+  },
+  "runtime_sec": 46.8
+}

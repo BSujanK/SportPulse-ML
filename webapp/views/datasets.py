@@ -34,12 +34,31 @@ def column_stats(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-ds = st.radio("Dataset", ["club-matches-2000-2026", "ea-fifa-players-15-22"], horizontal=True,
-              label_visibility="collapsed")
+ds = st.segmented_control("Dataset", ["club-matches-2000-2026", "statsbomb-open-events", "ea-fifa-players-15-22"],
+                          default="club-matches-2000-2026", label_visibility="collapsed") or "club-matches-2000-2026"
 
-if ds.startswith("club"):
+if ds.startswith("statsbomb"):
+    am = state.analyst_metrics()
+    d = am["data"]
+    ui.repo_header("sportpulse", ds, "database",
+                   tag_items=[("task", "Event data"), ("", f"{d['matches']:,} matches"), ("", f"{d['shots']:,} shots"),
+                              ("", f"{d['passes'] / 1e6:.1f}M passes"), ("lic", "CC BY-NC-SA · StatsBomb")])
+    df = state.analyst("shots").drop(columns=["match_id"])
+    split = f"shots ({len(df):,} rows) with SportPulse and StatsBomb xG"
+    card = f"""
+**Source.** [statsbomb/open-data](https://github.com/statsbomb/open-data). Data provided by StatsBomb.
+Every on-ball event with pitch location (120 × 80, each team attacking towards x = 120), and a freeze-frame of all
+visible players at each shot.
+
+**Competitions ({len(d['competitions'])}).** """ + ", ".join(d["competitions"]) + """
+
+**Processing.** Events are streamed match by match and reduced to shots (with freeze-frame geometry), passes,
+carries, defensive actions and line-ups; raw JSON is not stored. Penalty shoot-outs are excluded. The app ships only
+aggregates: team-match stats, team profiles, player output, pass networks, heat grids and shots.
+"""
+elif ds.startswith("club"):
     d = mm["data"]
-    ui.repo_header("sportpulse", ds, "🗂️",
+    ui.repo_header("sportpulse", ds, "database",
                    tag_items=[("task", "Tabular Classification"), ("task", "Time-series Forecasting"),
                               ("", "csv"), ("", f"{d['matches_total']:,} rows"), ("", f"{d['divisions']} leagues"),
                               ("lic", "football-data.co.uk terms")])
@@ -61,7 +80,7 @@ natively.
 **Leagues.** """ + ", ".join(config.division_label(k) for k in config.DIVISIONS)
 else:
     d = pm["data"]
-    ui.repo_header("sportpulse", ds, "🗂️",
+    ui.repo_header("sportpulse", ds, "database",
                    tag_items=[("task", "Tabular Regression"), ("", "csv"),
                               ("", f"{d['player_seasons']:,} rows"), ("", f"{d['players']:,} players"),
                               ("", "FIFA 15 → 22")])
@@ -80,23 +99,16 @@ positional lines. Contract years left = contract end − edition.
 `proj_overall` / `proj_low` / `proj_high` (development model), `archetype`, `style_x` / `style_y` (GMM style space).
 """
 
-t_view, t_card = st.tabs(["🔍 Dataset viewer", "📄 Dataset card"])
+t_view, t_card = st.tabs([":material/table_view: Dataset viewer", ":material/description: Dataset card"])
 with t_view:
-    st.markdown(f'<p class="hf-mono">Split: {split}</p>', unsafe_allow_html=True)
+    st.markdown(f'<div class="hf-mono">Split: {split}</div>', unsafe_allow_html=True)
     stats = column_stats(df)
     st.dataframe(stats, hide_index=True, use_container_width=True, height=330,
                  column_config={"distribution": st.column_config.BarChartColumn("Distribution", y_min=0),
                                 "null %": st.column_config.ProgressColumn("Null %", min_value=0, max_value=100,
                                                                           format="%.1f"),
                                 "mean": st.column_config.NumberColumn("Mean", format="%.3g")})
-    q = st.text_input("Filter rows (pandas query, e.g. `division == 'E0' and hg >= 4`)", "")
-    view = df
-    if q:
-        try:
-            view = df.query(q)
-        except Exception as e:  # noqa: BLE001 - show the user their query error
-            st.error(f"Query error: {e}")
-    st.dataframe(view.head(500), use_container_width=True, height=520, hide_index=True)
-    st.caption(f"Showing {min(len(view), 500):,} of {len(view):,} rows")
+    st.caption("One row per column, with type, completeness, range and distribution, as in the Hugging Face "
+               "dataset viewer. Row-level data is available through the training pipeline.")
 with t_card:
     st.markdown(card)

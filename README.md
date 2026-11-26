@@ -24,6 +24,9 @@ SportPulse ML is an end-to-end machine-learning system:
   next gameweek of 2026-27.
 - A **national-team forecaster** (tournament-weighted World Football Elo + LightGBM) with data through
   November 2026, including the 2026 World Cup.
+- An **analyst layer on StatsBomb event data** (1,999 matches): an xG model on par with StatsBomb's commercial
+  xG, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
+  scouting notes, match reports with xG race, shot maps and pass networks.
 - Player valuation, development-forecast and style-archetype models (EA FIFA attribute data).
 - A Hugging Face–style Streamlit UI in the original black and plasma-orange theme.
 
@@ -32,6 +35,7 @@ SportPulse ML is an end-to-end machine-learning system:
 | Club matches + odds (football-data.co.uk via xgabora) | 238,934 matches, 38 leagues | 2026-09-03 (+ Premier League live to GW10, 2026-11-08) |
 | Fantasy Premier League (vaastav) | 260k player-fixtures, 2016-17 → 2026-27 | GW10, 2026-11-08 |
 | International results (martj42) | 49k internationals since 1872 | 2026-11-17 |
+| StatsBomb open data (events + freeze-frames) | 1,999 matches, 50k shots, 2M passes | Euro 2024 / Copa América 2024 / Bundesliga 2023-24 |
 | EA FIFA 15–22 (sofifa) | 142k player-seasons | 2021-22 snapshot |
 
 <!-- RESULTS:START -->
@@ -80,6 +84,14 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 | SportPulse International (LightGBM) | 0.1680 | 61.3% | 0.1612 |
 | World Football Elo (logistic) | 0.1695 | 61.3% | 0.1598 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
+
+### Expected goals, StatsBomb open data (1,999 matches, 49,257 non-penalty shots)
+
+| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |
+|---|---|---|---|---|
+| **SportPulse xG (LightGBM)** | 0.2507 | 0.8109 | 0.2548 | 0.0072 |
+| StatsBomb xG (commercial) | 0.2503 | 0.8123 | 0.2563 | 0.0104 |
+| Distance + angle logistic | 0.2797 | 0.7451 | — | — |
 <!-- RESULTS:END -->
 
 ## What changed from v1
@@ -102,6 +114,9 @@ sportpulse/
 ├── config.py                 sources, leagues, chronological split dates
 ├── data/loaders.py           download + cache + clean, team-name canonicalisation (no fake values)
 ├── data/fpl.py               FPL player data + live Premier League results feed
+├── data/statsbomb.py         StatsBomb event ingest → shots / passes / carries / defence / line-ups
+├── analysis/xg.py            freeze-frame xG model + evaluation vs StatsBomb xG
+├── analysis/analyst.py       expected threat, team styles, player output, pass networks, heat grids
 ├── international.py          national-team Elo engine, model, predictor
 ├── features/
 │   ├── engine.py             sequential leak-free engine: Elo, pi-ratings, EWM form, league context
@@ -160,6 +175,24 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
 * EWM form (all matches and competitive-only) → LightGBM multiclass + temperature calibration. Train 1994 →
   2022, early-stop 2023 → mid-2024, test **mid-2024 → Nov 2026**.
 
+### Analyst layer (StatsBomb open data)
+* **Ingest** streams each match's events and keeps compact tables: shots (with freeze-frame geometry), passes,
+  carries, defensive actions and line-ups. Penalty shoot-outs are excluded, and full names are mapped to common
+  names.
+* **xG**: LightGBM with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase, the assisting
+  pass and freeze-frame features (defenders and teammates in the shooting cone, goalkeeper position and
+  distance, nearest defender, pressure count). Validated out-of-fold by match and on a temporal hold-out
+  (trained on ≤ 2021, tested on 2022–24 tournaments), benchmarked against StatsBomb's own xG.
+* **Expected threat** (Singh 2018), a 16 × 12 Markov grid from 3.5M passes and carries, gives each move's
+  xT added.
+* **Team style profiles** per competition, with percentiles: npxG for/against, possession, field tilt,
+  PPDA, pressure height, high regains, progressive passes/carries, xT, crosses, long-ball share, set-piece xG,
+  defensive-action height.
+* **Opponent report**: style radar, strengths and watch-outs, style reading, rule-based game-plan cues,
+  attacking and conceded shot maps, pressing and ball-winning heat maps, key players (npxG, xA, xT per 90),
+  match log.
+* **Match report**: xG race, two-way shot map, starters' pass networks, team-stat comparison, xG model card.
+
 ### Live data
 `load_matches()` appends finished current-season Premier League fixtures from the FPL feed when they are newer
 than the club dataset, so Premier League ratings are current to the latest gameweek. It also canonicalises
@@ -178,15 +211,17 @@ team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Fores
 
 | Page | What it is |
 |---|---|
-| 🏠 Hub | Org page: model and dataset cards, headline out-of-sample metrics |
-| ⚡ Match Forecaster | Model card plus an **Inference API widget**: pick any current-season fixture in 38 leagues, optionally add odds, and get 1X2, xG, O/U 2.5, BTTS and a scoreline heatmap |
-| 🏆 Leaderboard | Benchmark vs bookmaker and rating baselines, per-league, monthly, betting backtest |
-| 📊 Leagues | Live standings (2026-27), power ratings from the model's own state, Elo history |
-| 🎯 PL Player Forecaster | Next-gameweek projections for every Premier League player, a budget-constrained best XI, evaluation vs FPL xP |
-| 🌍 National Teams | World Elo ranking (Nov 2026), neutral-venue fixture predictor, World Cup 2026 evaluation |
-| 🔎 Player Scout | Fair value vs listed, rating forecast with interval, similar players, undervalued finder, rising stars |
-| 🧬 Archetypes | Interactive style map and data-derived role profiles |
-| 🗂️ Datasets | HF-style dataset viewer with per-column stats and histograms |
+| Hub | Org page: model and dataset cards, headline out-of-sample metrics |
+| Match Forecaster | Model card plus an **Inference API widget**: pick any current-season fixture in 38 leagues, optionally add odds, and get 1X2, xG, O/U 2.5, BTTS and a scoreline heatmap |
+| Leaderboard | Benchmark vs bookmaker and rating baselines, per-league, monthly, betting backtest |
+| Leagues | Live standings (2026-27), power ratings from the model's own state, Elo history |
+| Opponent Report | Pre-match scouting of any team in the StatsBomb competitions: style radar, cues, shot and pressing maps, key players |
+| Match Analysis | xG race, shot map, pass networks and team stats for any of 1,999 matches; xG model card |
+| PL Player Forecaster | Next-gameweek projections for every Premier League player, a budget-constrained best XI, evaluation vs FPL xP |
+| National Teams | World Elo ranking (Nov 2026), neutral-venue fixture predictor, World Cup 2026 evaluation |
+| Player Scout | Fair value vs listed, rating forecast with interval, similar players, undervalued finder, rising stars |
+| Archetypes | Interactive style map and data-derived role profiles |
+| Datasets | HF-style dataset viewer with per-column stats and histograms |
 
 ## Quick start
 
@@ -202,6 +237,7 @@ pip install -r requirements-dev.txt
 python -m sportpulse.train all --trials 30           # ~40 min on 4 CPU cores
 python -m sportpulse.train fpl --refresh             # pull the newest gameweek and re-project
 python -m sportpulse.train international --refresh   # pull the newest internationals
+python -m sportpulse.train analyst                   # StatsBomb ingest + xG + analyst aggregates (~3 min)
 python -m sportpulse.train matches --refresh         # pull the latest results and retrain the match models
 pytest -q
 ```
@@ -212,6 +248,9 @@ pytest -q
 * Hugging Face Spaces: create a Streamlit Space and push this repo. The YAML header above configures it.
 
 ## Data & honesty notes
+* **Events.** [StatsBomb open data](https://github.com/statsbomb/open-data). *Data provided by StatsBomb.*
+  CC BY-NC-SA 4.0: attribution required, non-commercial use. A commercial club deployment would need a licensed
+  event feed (StatsBomb, Opta, Wyscout) through the same ingest interface.
 * **Matches.** [xgabora/Club-Football-Match-Data-2000-2025](https://github.com/xgabora/Club-Football-Match-Data-2000-2025)
   (football-data.co.uk + clubelo), updated through 2026-09-03.
 * **Players.** [305kishan/FIFA](https://github.com/305kishan/FIFA): sofifa scrapes of EA FIFA 15–22. FIFA 22 is the

@@ -26,7 +26,7 @@ d = m["data"]
 lb = {r["model"]: r for r in m["competitive"]}
 mine, elo = lb["SportPulse International (LightGBM)"], lb["World Football Elo (logistic)"]
 
-ui.repo_header("sportpulse", "national-team-forecaster", "🌍", badge="● live",
+ui.repo_header("sportpulse", "national-team-forecaster", "globe", badge="● live",
                tag_items=[("task", "Tabular Classification"), ("lib", "LightGBM"), ("", "World Football Elo"),
                           ("ds", "international-results 1872–2026"), ("", f"data through {d['last']}")])
 
@@ -58,7 +58,7 @@ with right:
             st.warning("Pick two different teams.")
 
 with left:
-    t1, t2, t3 = st.tabs(["🏆 World ranking", "📊 Evaluation", "🕒 Recent predictions"])
+    t1, t2, t3 = st.tabs([":material/military_tech: World ranking", ":material/analytics: Evaluation", ":material/history: Recent predictions"])
     with t1:
         r = P.ranking.head(60).copy()
         r.insert(0, "#", range(1, len(r) + 1))
@@ -77,8 +77,10 @@ with left:
             ui.section(title, f"n = {m[key][0]['n']:,}" if m[key] else "")
             st.dataframe(pd.DataFrame(m[key])[["model", "rps", "log_loss", "brier", "accuracy", "ece"]],
                          hide_index=True, use_container_width=True,
-                         column_config={c: st.column_config.NumberColumn(c, format="%.4f")
-                                        for c in ["rps", "log_loss", "brier", "accuracy", "ece"]})
+                         column_config={"model": st.column_config.TextColumn("Model", width="large")} | {
+                             c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in
+                             {"rps": "RPS ↓", "log_loss": "Log-loss ↓", "brier": "Brier ↓", "accuracy": "Accuracy ↑",
+                              "ece": "ECE ↓"}.items()})
         ui.note(f"Chronological protocol: ratings run from {d['first']}; the model trains on 1994 → 2022, early-stops "
                 f"on 2023 → mid-2024 and is tested on <b>{d['test_window'][0]} → {d['test_window'][1]}</b> "
                 f"({d['test']:,} matches, including Euro 2024 qualifiers onward and the 2026 World Cup). On the 104 "

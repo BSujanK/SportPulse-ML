@@ -24,7 +24,7 @@ prod = lb["SportPulse LightGBM (production)"]
 research = lb["Research: SportPulse + archived FPL xP"]
 xp = lb["FPL official xP"]
 
-ui.repo_header("sportpulse", "premier-league-player-forecaster", "🎯", badge="● live",
+ui.repo_header("sportpulse", "premier-league-player-forecaster", "target", badge="● live",
                tag_items=[("task", "Tabular Regression"), ("task", "Binary Classification"),
                           ("lib", "LightGBM"), ("ds", "fantasy-premier-league 2016–2027"),
                           ("", f"data through GW{d['latest_gameweek']} · {str(d['latest_kickoff'])[:10]}"),
@@ -38,8 +38,8 @@ ui.kpi_row([
     ui.kpi("Test rows", f"{d['test_rows']:,}", "", "2025-26 + 2026-27"),
 ])
 
-t_proj, t_xi, t_eval, t_card = st.tabs([f"⚡ GW{d['next_gameweek']} projections", "🧩 Best XI",
-                                        "📊 Evaluation", "📄 Model card"])
+t_proj, t_xi, t_eval, t_card = st.tabs([f":material/bolt: GW{d['next_gameweek']} projections", ":material/groups: Best XI",
+                                        ":material/analytics: Evaluation", ":material/description: Model card"])
 
 with t_proj:
     c1, c2, c3, c4 = st.columns(4)
@@ -127,9 +127,12 @@ with t_eval:
     fig.update_layout(title="Average points of each method's top-11 picks per gameweek (4-GW rolling)",
                       height=420, xaxis=dict(showticklabels=False, title="2025-26 → 2026-27 gameweeks"))
     ui.plot(fig)
-    c = pd.DataFrame(m["classifiers"]).T
+    c = pd.DataFrame(m["classifiers"]).T.rename(index={"p_60": "Plays 60+ min", "p_goal": "Scores", "p_assist": "Assists"})
+    ui.section("Probability heads", icon="target")
     st.dataframe(c, use_container_width=True,
-                 column_config={k: st.column_config.NumberColumn(k, format="%.4f") for k in c.columns})
+                 column_config={k: st.column_config.NumberColumn(lbl, format="%.4f") for k, lbl in
+                                {"logloss": "Log-loss ↓", "logloss_prior": "Prior log-loss", "logloss_form": "Form log-loss",
+                                 "brier": "Brier ↓", "auc": "AUC ↑", "base_rate": "Base rate"}.items()})
     ui.note("<b>About FPL xP.</b> The benchmark is FPL's own pre-deadline expected points (<code>ep_this</code>, as "
             "archived by vaastav). It reflects injury and team news, which statistics cannot see. Stacking it as a feature "
             f"(research row) lifts backtest best-XI points to {research['top_xi']:.2f}, but it is <b>not deployed</b>: the "

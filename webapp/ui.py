@@ -13,6 +13,9 @@ import plotly.graph_objects as go
 import plotly.io as pio
 import streamlit as st
 
+from webapp.icons import has as _has_icon
+from webapp.icons import svg
+
 # ── Palette (unchanged from the original theme) ──────────────────────────────
 BLACK = "#0a0a0a"
 CARD = "#111111"
@@ -115,6 +118,8 @@ hr {{ border-color: {BORDER} !important; }}
               linear-gradient(180deg, #121212, {BLACK}); }}
 .hf-hero h1 {{ font-size: 2.05rem; font-weight: 800; margin: 0; padding: 0; color: {TEXT} !important; }}
 .hf-hero h1 span {{ color:{ORANGE} !important; }}
+.hf-hero-title {{ font-size: 2.05rem; font-weight: 800; letter-spacing:-0.02em; color:{TEXT}; line-height:1.15; }}
+.hf-hero-title span {{ color:{ORANGE}; }}
 .hf-hero p {{ color:{MUTED}; margin: 6px 0 0 0; font-size: 1rem; max-width: 900px; }}
 .hf-section {{ display:flex; align-items:center; gap:10px; margin: 22px 0 10px 0; font-weight:700;
   font-size: 1.08rem; }}
@@ -122,6 +127,30 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-note {{ border:1px solid {BORDER}; border-left: 3px solid {ORANGE}; border-radius: 8px;
   padding: 10px 14px; background:{CARD}; color:#d4d4d4; font-size:.86rem; margin: 8px 0; }}
 .hf-mono {{ font-family:'IBM Plex Mono',monospace; font-size:.82rem; color:{MUTED}; }}
+
+/* ── Section icon, steps, kv, bullets ─────────────── */
+.hf-section-icon {{ color:{ORANGE}; display:inline-flex; }}
+.hf-steps {{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin: 6px 0 4px 0; }}
+.hf-step {{ flex:1 1 150px; background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:12px 14px; }}
+.hf-step-icon {{ width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
+  color:{ORANGE}; background: rgba(255,107,0,.10); border:1px solid rgba(255,107,0,.30); margin-bottom:8px; }}
+.hf-step-t {{ font-weight:600; font-size:.9rem; }}
+.hf-step-c {{ color:{MUTED}; font-size:.78rem; margin-top:2px; line-height:1.4; }}
+.hf-step-arrow {{ display:flex; align-items:center; color:{DIM}; }}
+.hf-kv {{ display:grid; grid-template-columns: auto 1fr; gap:6px 14px; font-size:.84rem; }}
+.hf-kv .k {{ color:{MUTED}; }} .hf-kv .v {{ font-family:'IBM Plex Mono',monospace; color:{TEXT}; text-align:right; }}
+.hf-bullets .b {{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid {BORDER};
+  font-size:.88rem; line-height:1.45; }}
+.hf-bullets .b:last-child {{ border-bottom:none; }}
+.hf-bullets .i {{ margin-top:2px; display:inline-flex; }}
+.hf-bullets .good .i {{ color:{WIN}; }} .hf-bullets .bad .i {{ color:{LOSS}; }} .hf-bullets .info .i {{ color:{ORANGE}; }}
+.hf-icon {{ color:{ORANGE_3}; }} .hf-icon.ds {{ color:#7dd3fc; }} .hf-icon.sp {{ color:#c4b5fd; }}
+
+/* page links under cards: quiet, HF-style */
+[data-testid="stPageLink"] a {{ padding: 2px 4px !important; }}
+[data-testid="stPageLink"] a p {{ color:{MUTED} !important; font-size:.8rem !important; }}
+[data-testid="stPageLink"] a:hover p {{ color:{ORANGE_2} !important; }}
+.hf-card {{ min-height: 128px; }}
 
 /* ── Streamlit component polish ───────────────────── */
 [data-testid="stMetric"] {{ background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:10px 14px; }}
@@ -174,25 +203,29 @@ def esc(s) -> str:
     return html.escape(str(s))
 
 
+def _icon(icon: str, size: int = 15) -> str:
+    return svg(icon, size) if _has_icon(icon) else esc(icon)
+
+
 def tags(items: list[tuple[str, str]]) -> str:
     """items: (kind, text) with kind in task|lib|ds|lic|''."""
     return '<div class="hf-tags">' + "".join(
         f'<span class="hf-tag {k}">{esc(t)}</span>' for k, t in items) + "</div>"
 
 
-def repo_header(org: str, name: str, icon: str = "🧠", badge: str | None = None,
+def repo_header(org: str, name: str, icon: str = "box", badge: str | None = None,
                 tag_items: list | None = None) -> None:
     b = f'<span class="hf-badge live">{esc(badge)}</span>' if badge else ""
     st.markdown(
-        f'<div class="hf-repo"><span class="hf-icon">{icon}</span><span class="org">{esc(org)}</span>'
+        f'<div class="hf-repo"><span class="hf-icon">{_icon(icon, 15)}</span><span class="org">{esc(org)}</span>'
         f'<span class="sep">/</span><span>{esc(name)}</span>{b}</div>'
         + (tags(tag_items) if tag_items else ""), unsafe_allow_html=True)
 
 
-def card(title: str, org: str = "sportpulse", icon: str = "🧠", kind: str = "",
+def card(title: str, org: str = "sportpulse", icon: str = "box", kind: str = "",
          desc: str = "", meta: list[str] | None = None) -> str:
     meta_html = ' <span class="hf-dot">•</span> '.join(esc(m) for m in (meta or []))
-    return (f'<div class="hf-card accent"><div class="hf-card-title"><span class="hf-icon {kind}">{icon}</span>'
+    return (f'<div class="hf-card accent"><div class="hf-card-title"><span class="hf-icon {kind}">{_icon(icon, 14)}</span>'
             f'<span title="{esc(org)}/{esc(title)}"><span class="org">{esc(org)}/</span>{esc(title)}</span></div>'
             + (f'<div class="hf-card-desc">{esc(desc)}</div>' if desc else "")
             + f'<div class="hf-card-meta">{meta_html}</div></div>')
@@ -221,13 +254,38 @@ def label_bars(rows: list[tuple[str, float, str]]) -> str:
 
 
 def widget_head(title: str, sub: str = "") -> str:
-    return (f'<div class="hf-widget-head"><span class="bolt">⚡</span>{esc(title)}'
+    return (f'<div class="hf-widget-head"><span class="bolt">{svg("zap", 15)}</span>{esc(title)}'
             f'<span class="hf-widget-sub">{esc(sub)}</span></div>')
 
 
-def section(title: str, count: str | None = None) -> None:
+def section(title: str, count: str | None = None, icon: str | None = None) -> None:
     c = f'<span class="count">{esc(count)}</span>' if count else ""
-    st.markdown(f'<div class="hf-section">{esc(title)}{c}</div>', unsafe_allow_html=True)
+    i = f'<span class="hf-section-icon">{svg(icon, 16)}</span>' if icon else ""
+    st.markdown(f'<div class="hf-section">{i}{esc(title)}{c}</div>', unsafe_allow_html=True)
+
+
+def steps(items: list[tuple[str, str, str]]) -> None:
+    """Horizontal pipeline diagram: (icon, title, caption)."""
+    cells = "".join(
+        f'<div class="hf-step"><div class="hf-step-icon">{svg(i, 16)}</div><div class="hf-step-t">{esc(t)}</div>'
+        f'<div class="hf-step-c">{esc(c)}</div></div>' + ('<div class="hf-step-arrow">' + svg("arrow", 14) + '</div>'
+                                                         if n < len(items) - 1 else "")
+        for n, (i, t, c) in enumerate(items))
+    st.markdown(f'<div class="hf-steps">{cells}</div>', unsafe_allow_html=True)
+
+
+def kv(rows: list[tuple[str, str]]) -> str:
+    """Two-column key / value list (replaces raw feature dumps)."""
+    return '<div class="hf-kv">' + "".join(
+        f'<div class="k">{esc(k)}</div><div class="v">{esc(v)}</div>' for k, v in rows) + "</div>"
+
+
+def bullets(rows: list[tuple[str, str]]) -> str:
+    """Scouting-note bullets: (tone, text) with tone in good|bad|info."""
+    icon = {"good": "check", "bad": "alert", "info": "activity"}
+    return '<div class="hf-bullets">' + "".join(
+        f'<div class="b {t}"><span class="i">{svg(icon.get(t, "activity"), 14)}</span><span>{x}</span></div>'
+        for t, x in rows) + "</div>"
 
 
 def note(text: str) -> None:

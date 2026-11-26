@@ -8,7 +8,7 @@ df = state.players()
 pm = state.player_metrics()
 A = pm["archetypes"]
 
-ui.repo_header("sportpulse", "player-archetypes-gmm", "🧬",
+ui.repo_header("sportpulse", "player-archetypes-gmm", "component",
                tag_items=[("task", "Clustering"), ("lib", "scikit-learn"), ("", "GaussianMixture"),
                           ("", f"k = {A['k']} (BIC)"), ("ds", "ea-fifa-players-15-22")])
 ui.note("Style is separated from quality: each player's 29 detailed attributes are centred on their own mean, "
@@ -17,7 +17,7 @@ ui.note("Style is separated from quality: each player's 29 detailed attributes a
         "other players in the same positional line.")
 
 out = df[df.position_group != "GK"]
-t1, t2, t3 = st.tabs(["🗺️ Style map", "🧾 Archetype profiles", "📐 Model selection"])
+t1, t2, t3 = st.tabs([":material/scatter_plot: Style map", ":material/badge: Archetype profiles", ":material/tune: Model selection"])
 
 with t1:
     c1, c2 = st.columns([1, 3])
@@ -55,7 +55,7 @@ with t2:
             dist = ", ".join(f"{k.replace('_', ' ')} {v:+.2f}" for k, v in p["distinguishing"].items())
             lines = " · ".join(f"{k} {v * 100:.0f}%" for k, v in list(p["line_mix"].items())[:3])
             with c:
-                st.markdown(ui.card(n, org="archetype", icon="🧬", kind="sp",
+                st.markdown(ui.card(n, org="archetype", icon="component", kind="sp",
                                     desc=f"Distinct traits: {dist}",
                                     meta=[f"{p['size']:,} players", lines]), unsafe_allow_html=True)
                 st.caption("Top: " + ", ".join(f"{r.short_name} ({r.overall})" for r in top.itertuples()))

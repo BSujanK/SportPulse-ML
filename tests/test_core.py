@@ -105,3 +105,35 @@ def test_fundamental_features_exclude_market():
 def test_division_metadata_consistent():
     for code, (country, name, tier) in config.DIVISIONS.items():
         assert tier >= 1 and country and name
+
+
+# ── analyst layer ────────────────────────────────────────────────────────────
+def test_freeze_frame_geometry():
+    from sportpulse.data.statsbomb import freeze_frame_features
+    ff = [{"location": [118, 40], "teammate": False, "position": {"name": "Goalkeeper"}},
+          {"location": [110, 40], "teammate": False, "position": {"name": "Center Back"}},
+          {"location": [100, 10], "teammate": False, "position": {"name": "Left Back"}}]
+    f = freeze_frame_features([100, 40], ff)
+    assert f["ff_def_in_cone"] == 1 and f["ff_gk_in_cone"] == 1
+    assert f["ff_nearest_def"] == pytest.approx(10.0)
+    assert f["ff_gk_dist_goal"] == pytest.approx(2.0)
+
+
+def test_expected_threat_increases_towards_goal():
+    from sportpulse.analysis.analyst import expected_threat
+    rng = np.random.default_rng(0)
+    n = 4000
+    x = rng.uniform(0, 120, n); y = rng.uniform(0, 80, n)
+    passes = pd.DataFrame({"x": x, "y": y, "end_x": np.clip(x + rng.normal(8, 10, n), 0, 119.9),
+                           "end_y": np.clip(y + rng.normal(0, 10, n), 0, 79.9), "complete": rng.random(n) < .8})
+    carries = passes.iloc[:0][["x", "y", "end_x", "end_y"]]
+    sx = rng.uniform(95, 120, 600); sy = rng.uniform(25, 55, 600)
+    shots = pd.DataFrame({"x": sx, "y": sy, "goal": (rng.random(600) < (sx - 90) / 60).astype(float)})
+    g = expected_threat(passes, carries, shots)
+    assert g[-1].mean() > g[0].mean() and (g >= 0).all()
+
+
+def test_progressive_pass_rule():
+    from sportpulse.analysis.analyst import progressive
+    df = pd.DataFrame({"x": [60, 60, 20], "y": [40, 40, 40], "end_x": [90, 62, 60], "end_y": [40, 40, 40]})
+    assert progressive(df).tolist() == [True, False, False]

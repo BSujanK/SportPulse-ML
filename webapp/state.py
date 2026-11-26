@@ -75,3 +75,23 @@ def season_start(today: pd.Timestamp | None = None) -> pd.Timestamp:
     last = recent_matches()["date"].max()
     year = last.year if last.month >= 7 else last.year - 1
     return pd.Timestamp(f"{year}-07-01")
+
+
+# ── Analyst layer (StatsBomb) ───────────────────────────────────────────────
+AN = config.ARTIFACTS_DIR / "analyst"
+
+
+@st.cache_data(show_spinner=False)
+def analyst(name: str) -> pd.DataFrame:
+    return pd.read_parquet(AN / f"{name}.parquet")
+
+
+@st.cache_data(show_spinner=False)
+def analyst_metrics() -> dict:
+    return json.loads((AN / "metrics.json").read_text())
+
+
+def competition_order() -> list[str]:
+    """Competitions, most recent first."""
+    m = analyst("matches")
+    return m.groupby("label").date.max().sort_values(ascending=False).index.tolist()

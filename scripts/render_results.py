@@ -62,6 +62,16 @@ wc = {r["model"]: r for r in im["world_cup_2026"]}
 for r in im["competitive"]:
     lines.append(f"| {r['model']} | {r['rps']:.4f} | {r['accuracy'] * 100:.1f}% | "
                  f"{wc.get(r['model'], {}).get('rps', float('nan')):.4f} |")
+an = json.loads((ROOT / "artifacts/analyst/metrics.json").read_text())
+x = an["xg"]
+lines += ["", f"### Expected goals, StatsBomb open data ({x['matches']:,} matches, {x['non_penalty_shots']:,} non-penalty shots)",
+          "", "| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |", "|---|---|---|---|---|"]
+tt = x.get("temporal_recent_test", {})
+for name, r in x["non_penalty_cv"].items():
+    t = tt.get(name, {})
+    b = "**" if name.startswith("SportPulse") else ""
+    lines.append(f"| {b}{name}{b} | {r['log_loss']:.4f} | {r['auc']:.4f} | "
+                 + (f"{t['log_loss']:.4f} | {t['ece']:.4f} |" if t else "— | — |"))
 block = "\n".join(lines)
 readme = (ROOT / "README.md").read_text()
 readme = re.sub(r"<!-- RESULTS:START -->.*<!-- RESULTS:END -->",

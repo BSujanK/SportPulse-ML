@@ -83,3 +83,19 @@ def test_international_predictor():
     a, _ = P.predict("Brazil", "Argentina", neutral=True)
     b, _ = P.predict("Argentina", "Brazil", neutral=True)
     assert abs(a[0] - b[2]) < 0.08   # neutral venue ~ symmetric
+
+
+def test_analyst_artifacts():
+    an = config.ARTIFACTS_DIR / "analyst"
+    m = json.loads((an / "metrics.json").read_text())
+    cv = m["xg"]["non_penalty_cv"]
+    ours, sb, geo = (cv[k] for k in ("SportPulse xG (LightGBM)", "StatsBomb xG (commercial)", "Distance + angle logistic"))
+    assert ours["log_loss"] < geo["log_loss"] - 0.02          # far better than geometry-only xG
+    assert ours["log_loss"] < sb["log_loss"] + 0.003         # on par with StatsBomb's commercial model
+    assert abs(ours["xg_sum"] - ours["goals"]) / ours["goals"] < 0.03   # calibrated in total
+    shots = pd.read_parquet(an / "shots.parquet")
+    assert shots["xg"].between(0, 1).all() and (shots["period"] < 5).all()
+    wc = shots[(shots.label == "FIFA World Cup 2022") & (shots.player == "Lionel Messi")]
+    assert int(wc.goal.sum()) == 7                           # matches the real tournament record
+    prof = pd.read_parquet(an / "team_profiles.parquet")
+    assert prof.filter(like="pct_").stack().between(0, 1.01).all()
