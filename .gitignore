@@ -23,3 +23,9 @@ ENV/
 # Logs / temp
 *.log
 *.tmp
+
+# Data (re-downloaded by the pipeline)
+data/raw/
+data/processed/
+*.part
+.pytest_cache/

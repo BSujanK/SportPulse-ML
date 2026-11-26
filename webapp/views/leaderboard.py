@@ -1,0 +1,96 @@
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+from webapp import state, ui
+
+mm = state.match_metrics()
+d = mm["data"]
+ui.repo_header("sportpulse", "football-forecasting-leaderboard", "🏆", badge="● running",
+               tag_items=[("", "Space"), ("task", "Benchmark"), ("ds", "club-matches-2000-2026"),
+                          ("", f"test window {d['test'][0]} → {d['test'][1]}"),
+                          ("", f"{d['test_with_odds']:,} matches")])
+st.markdown(f'<p class="hf-mono">Evaluated on {d["test_with_odds"]:,} out-of-sample matches across '
+            f'{d["divisions"]} leagues. Lower RPS / log-loss / Brier is better.</p>', unsafe_allow_html=True)
+
+t1, t2, t3, t4 = st.tabs(["🏅 1X2 leaderboard", "🌍 By league", "📉 Over time", "💰 Betting backtest & O/U"])
+
+with t1:
+    df = pd.DataFrame(mm["leaderboard"])
+    df.insert(0, "Rank", range(1, len(df) + 1))
+    df["Type"] = df["model"].map(lambda m: "🟠 SportPulse" if m.startswith("SportPulse") or m.startswith("Poisson")
+                                 else ("📈 Market" if "market" in m.lower() else "⚪ Baseline"))
+    df["accuracy"] *= 100
+    df["ece"] *= 100
+    st.dataframe(
+        df[["Rank", "Type", "model", "rps", "log_loss", "brier", "accuracy", "ece", "n"]],
+        hide_index=True, use_container_width=True,
+        column_config={
+            "model": st.column_config.TextColumn("Model", width="large"),
+            "rps": st.column_config.NumberColumn("RPS ↓", format="%.4f"),
+            "log_loss": st.column_config.NumberColumn("Log-loss ↓", format="%.4f"),
+            "brier": st.column_config.NumberColumn("Brier ↓", format="%.4f"),
+            "accuracy": st.column_config.ProgressColumn("Accuracy %", min_value=40, max_value=55, format="%.1f"),
+            "ece": st.column_config.NumberColumn("ECE %", format="%.2f"),
+            "n": st.column_config.NumberColumn("Matches", format="%d")})
+    ui.note("<b>RPS</b> (ranked probability score) is the standard proper scoring rule for ordered football "
+            "outcomes. For reference, the winning entry of the 2017 Soccer Prediction Challenge "
+            "(no betting data) scored ≈0.206 on its own test set. <b>Accuracy</b> alone is a weak metric: "
+            "always picking the favourite already gets ~50%.")
+    if mm.get("tuning"):
+        with st.expander("Hyper-parameter search (Optuna TPE)"):
+            st.json(mm["tuning"])
+
+with t2:
+    pdv = pd.DataFrame(mm["per_division"])
+    pdv["Δ RPS vs market"] = pdv["rps_market"] - pdv["rps_model"]
+    pdv = pdv.sort_values("Δ RPS vs market", ascending=False)
+    fig = go.Figure(go.Bar(x=pdv["Δ RPS vs market"] * 1000, y=pdv["league"], orientation="h",
+                           marker_color=[ui.WIN if v > 0 else ui.LOSS for v in pdv["Δ RPS vs market"]]))
+    fig.update_layout(title="RPS improvement over bookmaker, ×1000 (positive = model better)",
+                      yaxis=dict(autorange="reversed"), height=max(380, 22 * len(pdv)))
+    ui.plot(fig)
+    st.dataframe(pdv[["league", "n", "rps_model", "rps_market", "rps_fund", "acc_model", "acc_market"]],
+                 hide_index=True, use_container_width=True,
+                 column_config={"league": "League", "n": "Matches",
+                                "rps_model": st.column_config.NumberColumn("RPS model", format="%.4f"),
+                                "rps_market": st.column_config.NumberColumn("RPS market", format="%.4f"),
+                                "rps_fund": st.column_config.NumberColumn("RPS fundamentals", format="%.4f"),
+                                "acc_model": st.column_config.NumberColumn("Acc model", format="%.3f"),
+                                "acc_market": st.column_config.NumberColumn("Acc market", format="%.3f")})
+
+with t3:
+    mo = pd.DataFrame(mm["monthly"]).sort_values("month")
+    mo = mo[mo.n >= 100]
+    fig = go.Figure()
+    for col, name, color in [("rps_fund", "Fundamentals (no odds)", ui.ORANGE_3),
+                             ("rps_market", "Bookmaker", "#64748b"),
+                             ("rps_model", "Production", ui.ORANGE)]:
+        fig.add_trace(go.Scatter(x=mo["month"], y=mo[col], name=name, mode="lines+markers",
+                                 line=dict(color=color, width=3 if col == "rps_model" else 1.6)))
+    fig.update_layout(title="Monthly RPS across the test window", yaxis_title="RPS", height=420)
+    ui.plot(fig)
+    st.caption("The model was frozen before the first month shown. No retraining inside the window.")
+
+with t4:
+    c1, c2 = st.columns(2)
+    with c1:
+        ui.section("Value-betting simulation")
+        bt = pd.DataFrame([{"strategy": k, **v} for k, v in mm["betting_backtest"].items()])
+        bt["roi"] *= 100
+        st.dataframe(bt, hide_index=True, use_container_width=True,
+                     column_config={"roi": st.column_config.NumberColumn("ROI %", format="%.2f"),
+                                    "profit_units": st.column_config.NumberColumn("Profit (units)", format="%.1f")})
+        ui.note("Flat 1-unit stakes on the best price across bookmakers whenever the model's expected value "
+                "exceeds the edge threshold. This is a stringent test of whether the model knows something "
+                "the market price doesn't. Treat results as research, not betting advice.")
+    with c2:
+        ui.section("Over / Under 2.5 goals")
+        ou = mm["over_under_25"]
+        ui.kpi_row([ui.kpi("Model log-loss", f"{ou['logloss_model']:.4f}"),
+                    ui.kpi("Market log-loss", f"{ou['logloss_market']:.4f}"),
+                    ui.kpi("Base-rate log-loss", f"{ou['logloss_base']:.4f}")])
+        g = mm["goals"]
+        st.markdown(f"<p class='hf-mono'>n = {ou['n']:,} · accuracy model {ou['acc_model'] * 100:.1f}% vs "
+                    f"market {ou['acc_market'] * 100:.1f}% · goal MAE home {g['mae_home']:.3f} / "
+                    f"away {g['mae_away']:.3f} · Dixon-Coles ρ = {g['rho']:.3f}</p>", unsafe_allow_html=True)
