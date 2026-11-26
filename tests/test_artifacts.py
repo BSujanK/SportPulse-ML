@@ -60,3 +60,26 @@ def test_player_snapshot():
     assert m["development"]["model"]["mae"] < m["development"]["baseline_persistence"]["mae"]
     assert m["value"]["model"]["r2"] > m["value"]["baseline_linear_log"]["r2"]
     assert len(set(m["archetypes"]["names"].values())) == m["archetypes"]["k"]
+
+
+def test_fpl_artifacts():
+    fp = config.ARTIFACTS_DIR / "fpl"
+    m = json.loads((fp / "metrics.json").read_text())
+    lb = {r["model"]: r for r in m["leaderboard"]}
+    prod = lb["SportPulse LightGBM (production)"]
+    assert prod["mae"] < lb["FPL official xP"]["mae"]
+    assert prod["top_xi"] > lb["Form (last 6 mean)"]["top_xi"]
+    assert m["classifiers"]["p_60"]["auc"] > 0.9
+    n = pd.read_parquet(fp / "next_gameweek.parquet")
+    assert n["xpts"].between(-1, 15).all() and n["p_goal"].between(0, 1).all()
+    assert m["data"]["latest_kickoff"] >= "2026-01-01"
+
+
+def test_international_predictor():
+    from sportpulse.international import InternationalPredictor
+    P = InternationalPredictor()
+    p, _ = P.predict("Spain", "San Marino", neutral=False, tournament="FIFA World Cup qualification")
+    assert p.sum() == pytest.approx(1, abs=1e-6) and p[0] > 0.8
+    a, _ = P.predict("Brazil", "Argentina", neutral=True)
+    b, _ = P.predict("Argentina", "Brazil", neutral=True)
+    assert abs(a[0] - b[2]) < 0.08   # neutral venue ~ symmetric

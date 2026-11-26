@@ -13,30 +13,41 @@ short_description: Real-data football forecasting that edges out the betting mar
 
 # ⚽ SportPulse ML
 
-**Production-grade football forecasting, trained on real data through the 2026-27 season.**
+**Production-grade football forecasting, trained on real data through November 2026.**
 
 SportPulse ML is an end-to-end machine-learning system:
 
-- A leak-free feature engine and a hierarchical LightGBM forecaster that **matches or beats the
-  bookmaker market** on 17,000+ out-of-sample matches.
+- A leak-free feature engine and a hierarchical LightGBM forecaster that **edges past the bookmaker
+  market** on 17,000+ out-of-sample club matches (38 leagues).
 - A Poisson / Dixon-Coles scoreline model.
-- Player valuation, development-forecast and style-archetype models.
+- A **Premier League player forecaster** (FPL points, P(60′), P(goal), P(assist)) that is live for the
+  next gameweek of 2026-27.
+- A **national-team forecaster** (tournament-weighted World Football Elo + LightGBM) with data through
+  November 2026, including the 2026 World Cup.
+- Player valuation, development-forecast and style-archetype models (EA FIFA attribute data).
 - A Hugging Face–style Streamlit UI in the original black and plasma-orange theme.
 
+| Data | Coverage | Freshness |
+|---|---|---|
+| Club matches + odds (football-data.co.uk via xgabora) | 238,934 matches, 38 leagues | 2026-09-03 (+ Premier League live to GW10, 2026-11-08) |
+| Fantasy Premier League (vaastav) | 260k player-fixtures, 2016-17 → 2026-27 | GW10, 2026-11-08 |
+| International results (martj42) | 49k internationals since 1872 | 2026-11-17 |
+| EA FIFA 15–22 (sofifa) | 142k player-seasons | 2021-22 snapshot |
+
 <!-- RESULTS:START -->
-### Results on the untouched test window (2024-07-01 → 2026-09-03, 17,054 matches, 38 leagues)
+### Results on the untouched test window (2024-07-01 → 2026-11-08, 17,054 matches, 38 leagues)
 
 | Model | RPS ↓ | Log-loss ↓ | Brier ↓ | Accuracy | ECE |
 |---|---|---|---|---|---|
-| **SportPulse Market-Residual (production)** | **0.2034** | 1.0006 | 0.5985 | 50.7% | 1.27% |
+| **SportPulse Market-Residual (production)** | **0.2033** | 1.0005 | 0.5984 | 50.7% | 1.17% |
 | Bookmaker market (Shin) | 0.2035 | 1.0008 | 0.5986 | 50.5% | 1.11% |
-| Poisson-DC goals model | 0.2039 | 1.0026 | 0.5996 | 50.5% | 1.45% |
-| SportPulse Fundamentals (no odds) | 0.2079 | 1.0151 | 0.6083 | 49.2% | 1.05% |
-| Pi-rating + Elo logistic | 0.2098 | 1.0209 | 0.6121 | 48.9% | 1.08% |
-| Elo logistic | 0.2103 | 1.0225 | 0.6133 | 48.7% | 1.12% |
+| Poisson-DC goals model | 0.2038 | 1.0024 | 0.5995 | 50.6% | 1.57% |
+| SportPulse Fundamentals (no odds) | 0.2078 | 1.0148 | 0.6081 | 49.3% | 1.03% |
+| Pi-rating + Elo logistic | 0.2097 | 1.0206 | 0.6119 | 48.9% | 1.03% |
+| Elo logistic | 0.2103 | 1.0223 | 0.6132 | 48.8% | 1.06% |
 | Base rates (train prior) | 0.2283 | 1.0748 | 0.6503 | 43.6% | 0.78% |
 
-**Over/Under 2.5** log-loss: model 0.6791 · market 0.6781 · base rate 0.6941.
+**Over/Under 2.5** log-loss: model 0.6790 · market 0.6781 · base rate 0.6941.
 
 | Player model | Metric | SportPulse | Best baseline |
 |---|---|---|---|
@@ -47,7 +58,28 @@ SportPulse ML is an end-to-end machine-learning system:
 | Development | 80% interval coverage | 86.5% | — |
 | Archetypes | k by BIC | 11 roles | — |
 
-*Data through **2026-09-03** · production models refit on 226,537 matches.*
+*Data through **2026-11-08** · production models refit on 226,617 matches.*
+
+### Premier League player forecaster (test: 2025-26 + 2026-27 GW1–10, 36,319 player-fixtures)
+
+| Model | Points MAE ↓ | Spearman ↑ | Best-XI pts/player ↑ |
+|---|---|---|---|
+| **SportPulse LightGBM (production)** | 0.999 | 0.719 | **4.65** |
+| Research: SportPulse + archived FPL xP | 0.873 | 0.707 | 6.34 |
+| FPL official xP | 1.092 | 0.327 | 3.41 |
+| Form (last 6 mean) | 1.099 | 0.686 | 3.83 |
+| Form (EWM) | 1.095 | 0.657 | 4.14 |
+| Oracle (actual points) | 0.000 | 1.000 | 12.51 |
+
+P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
+
+### National-team forecaster (test: 2024-07-01 → 2026-11-17)
+
+| Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |
+|---|---|---|---|
+| SportPulse International (LightGBM) | 0.1680 | 61.3% | 0.1612 |
+| World Football Elo (logistic) | 0.1695 | 61.3% | 0.1598 |
+| Base rates | 0.2329 | 46.9% | 0.2295 |
 <!-- RESULTS:END -->
 
 ## What changed from v1
@@ -68,14 +100,17 @@ The original app trained on partly synthetic data and had target leakage. v2 is 
 ```text
 sportpulse/
 ├── config.py                 sources, leagues, chronological split dates
-├── data/loaders.py           download + cache + clean (no imputation with fake values)
+├── data/loaders.py           download + cache + clean, team-name canonicalisation (no fake values)
+├── data/fpl.py               FPL player data + live Premier League results feed
+├── international.py          national-team Elo engine, model, predictor
 ├── features/
 │   ├── engine.py             sequential leak-free engine: Elo, pi-ratings, EWM form, league context
 │   └── market.py             Shin de-vigging of bookmaker odds
 ├── models/
 │   ├── match_outcome.py      fundamentals LGBM → market-residual LGBM (init_score = log p_mkt) → temperature
 │   ├── goals.py              Poisson LGBM rates + Dixon-Coles ρ → scorelines, O/U, BTTS
-│   └── players.py            value LGBM, quantile development LGBM, GMM archetypes, similarity
+│   ├── players.py            value LGBM, quantile development LGBM, GMM archetypes, similarity
+│   └── fpl_model.py          per-fixture player forecaster (points + 3 probability heads)
 ├── evaluation/metrics.py     RPS, log-loss, Brier, ECE, reliability curves, betting backtest
 ├── pipelines/                match_pipeline.py, player_pipeline.py (train → evaluate → refit → artifacts)
 ├── inference.py              MatchPredictor: live fixture prediction from saved team states
@@ -106,6 +141,31 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
 **Protocol.** Train 2002-07 → 2023-06, validate 2023-24 (early stopping, tuning, calibration), **test 2024-07 →
 2026-09**, never touched until evaluation. Then refit on all data for serving.
 
+### Premier League player forecaster (FPL 2016-17 → 2026-27)
+* One row per player per fixture. All features are lagged: rolling 3 / 6 / EWM form for minutes, points,
+  goals, assists, xG, xA, xGI, xGC, ICT, BPS, bonus, clean sheets, saves; per-90 rates; season-to-date;
+  price, ownership and transfer momentum from the previous gameweek.
+* **Fixture context from the match engine:** team and opponent Elo, pi-rating goal difference, goals and shots
+  on target for/against, from the team's perspective.
+* Four LightGBM heads: points (L2), P(60+ min), P(goal), P(assist). Train 2016-17 → 2023-24, early-stop
+  2024-25, **test 2025-26 + 2026-27**. The production refit projects the next gameweek, scaled by FPL's
+  chance-of-playing flag.
+* Benchmarked against FPL's own expected points (xP). A research variant that stacks archived xP scores
+  higher in backtest, but is not deployed because the live `ep_next` feed is distributed differently.
+
+### National-team forecaster
+* World Football Elo (eloratings.net): K = 60 World Cup, 50 continental finals, 40 qualifiers / Nations League,
+  30 other tournaments, 20 friendlies; goal-difference multiplier; +100 home advantage only at non-neutral venues
+  (a "neutral" match in a team's own country counts as home).
+* EWM form (all matches and competitive-only) → LightGBM multiclass + temperature calibration. Train 1994 →
+  2022, early-stop 2023 → mid-2024, test **mid-2024 → Nov 2026**.
+
+### Live data
+`load_matches()` appends finished current-season Premier League fixtures from the FPL feed when they are newer
+than the club dataset, so Premier League ratings are current to the latest gameweek. It also canonicalises
+team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Forest", "MGladbach" →
+"M'gladbach"), which previously split those clubs' rating histories.
+
 ### Player models (EA FIFA 15–22)
 * **Market value.** LightGBM on log €, 5-fold **GroupKFold by player** (a player's every season is held out
   together), plus a forward-edition stress test.
@@ -122,6 +182,8 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
 | ⚡ Match Forecaster | Model card plus an **Inference API widget**: pick any current-season fixture in 38 leagues, optionally add odds, and get 1X2, xG, O/U 2.5, BTTS and a scoreline heatmap |
 | 🏆 Leaderboard | Benchmark vs bookmaker and rating baselines, per-league, monthly, betting backtest |
 | 📊 Leagues | Live standings (2026-27), power ratings from the model's own state, Elo history |
+| 🎯 PL Player Forecaster | Next-gameweek projections for every Premier League player, a budget-constrained best XI, evaluation vs FPL xP |
+| 🌍 National Teams | World Elo ranking (Nov 2026), neutral-venue fixture predictor, World Cup 2026 evaluation |
 | 🔎 Player Scout | Fair value vs listed, rating forecast with interval, similar players, undervalued finder, rising stars |
 | 🧬 Archetypes | Interactive style map and data-derived role profiles |
 | 🗂️ Datasets | HF-style dataset viewer with per-column stats and histograms |
@@ -137,12 +199,17 @@ Retrain from scratch (downloads ~120 MB of public data):
 
 ```bash
 pip install -r requirements-dev.txt
-python -m sportpulse.train all --trials 30           # ~25 min on 4 CPU cores
+python -m sportpulse.train all --trials 30           # ~40 min on 4 CPU cores
+python -m sportpulse.train fpl --refresh             # pull the newest gameweek and re-project
+python -m sportpulse.train international --refresh   # pull the newest internationals
 python -m sportpulse.train matches --refresh         # pull the latest results and retrain the match models
 pytest -q
 ```
 
-**Deploy to Hugging Face Spaces.** Create a Streamlit Space and push this repo. The YAML header above configures it.
+**Deploy.** Either option works:
+* [Streamlit Community Cloud, one click](https://share.streamlit.io/deploy?repository=BSujanK/SportPulse-ML&branch=claude/tender-hypatia-qfphwp&mainModule=app.py)
+  (choose Python 3.12)
+* Hugging Face Spaces: create a Streamlit Space and push this repo. The YAML header above configures it.
 
 ## Data & honesty notes
 * **Matches.** [xgabora/Club-Football-Match-Data-2000-2025](https://github.com/xgabora/Club-Football-Match-Data-2000-2025)

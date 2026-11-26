@@ -44,6 +44,24 @@ lines += [
     "",
     f"*Data through **{d['last_date']}** · production models refit on {mm['production']['n_train']:,} matches.*",
 ]
+fm = json.loads((ROOT / "artifacts/fpl/metrics.json").read_text())
+im = json.loads((ROOT / "artifacts/international/metrics.json").read_text())
+fd = fm["data"]
+lines += ["", f"### Premier League player forecaster (test: 2025-26 + 2026-27 GW1–{fd['latest_gameweek']}, "
+          f"{fd['test_rows']:,} player-fixtures)", "",
+          "| Model | Points MAE ↓ | Spearman ↑ | Best-XI pts/player ↑ |", "|---|---|---|---|"]
+for r in fm["leaderboard"]:
+    b = "**" if "production" in r["model"] else ""
+    lines.append(f"| {b}{r['model']}{b} | {r['mae']:.3f} | {r['spearman']:.3f} | {b}{r['top_xi']:.2f}{b} |")
+c = fm["classifiers"]
+lines += ["", f"P(60+ min) AUC {c['p_60']['auc']:.3f} · P(goal) AUC {c['p_goal']['auc']:.3f} · "
+          f"P(assist) AUC {c['p_assist']['auc']:.3f}.", "",
+          f"### National-team forecaster (test: {im['data']['test_window'][0]} → {im['data']['test_window'][1]})", "",
+          "| Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |", "|---|---|---|---|"]
+wc = {r["model"]: r for r in im["world_cup_2026"]}
+for r in im["competitive"]:
+    lines.append(f"| {r['model']} | {r['rps']:.4f} | {r['accuracy'] * 100:.1f}% | "
+                 f"{wc.get(r['model'], {}).get('rps', float('nan')):.4f} |")
 block = "\n".join(lines)
 readme = (ROOT / "README.md").read_text()
 readme = re.sub(r"<!-- RESULTS:START -->.*<!-- RESULTS:END -->",

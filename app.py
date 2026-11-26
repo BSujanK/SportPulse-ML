@@ -29,6 +29,8 @@ pages = [
     st.Page(str(V / "match_forecaster.py"), title="Match Forecaster", icon="⚡", url_path="match-forecaster"),
     st.Page(str(V / "leaderboard.py"), title="Leaderboard", icon="🏆", url_path="leaderboard"),
     st.Page(str(V / "leagues.py"), title="Leagues", icon="📊", url_path="leagues"),
+    st.Page(str(V / "fpl.py"), title="PL Player Forecaster", icon="🎯", url_path="pl-player-forecaster"),
+    st.Page(str(V / "international.py"), title="National Teams", icon="🌍", url_path="national-teams"),
     st.Page(str(V / "player_scout.py"), title="Player Scout", icon="🔎", url_path="player-scout"),
     st.Page(str(V / "archetypes.py"), title="Archetypes", icon="🧬", url_path="archetypes"),
     st.Page(str(V / "datasets.py"), title="Datasets", icon="🗂️", url_path="datasets"),
@@ -40,5 +42,6 @@ st.markdown(
     f'<div style="margin-top:48px;padding:18px 0;border-top:1px solid {ui.BORDER};'
     f'color:{ui.DIM};font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">'
     '<span>⚽ <b style="color:#ccc">SportPulse ML</b> · real-data football forecasting · MIT</span>'
-    '<span>Data: football-data.co.uk & clubelo via xgabora · EA Sports FIFA via sofifa</span></div>',
+    '<span>Data: football-data.co.uk & clubelo (xgabora) · Fantasy Premier League (vaastav) · '
+    'international results (martj42) · EA Sports FIFA (sofifa)</span></div>',
     unsafe_allow_html=True)

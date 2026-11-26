@@ -32,10 +32,11 @@ from sportpulse.evaluation.metrics import log_loss
 
 MKT_COLS = ["mkt_p_h", "mkt_p_d", "mkt_p_a"]
 
+# Optuna TPE (30 trials, 2023-24 validation log-loss) best configuration.
 DEFAULT_FUND_PARAMS = dict(
-    objective="multiclass", num_class=3, learning_rate=0.03, num_leaves=31,
-    min_data_in_leaf=400, feature_fraction=0.7, bagging_fraction=0.8, bagging_freq=1,
-    lambda_l2=5.0, verbose=-1, seed=SEED, num_threads=0,
+    objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=33,
+    min_data_in_leaf=106, feature_fraction=0.98, bagging_fraction=0.89, bagging_freq=1,
+    lambda_l2=57.3, lambda_l1=3.8, verbose=-1, seed=SEED, num_threads=0,
 )
 DEFAULT_RESID_PARAMS = dict(
     objective="multiclass", num_class=3, learning_rate=0.01, num_leaves=15,

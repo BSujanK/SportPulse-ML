@@ -1,0 +1,217 @@
+"""National-team forecaster (martj42/international_results, 1872 -> latest).
+
+Ratings follow the World Football Elo methodology (eloratings.net):
+tournament-weighted K, goal-difference multiplier and home advantage only
+at genuinely non-neutral venues. On top of ratings + exponentially weighted
+form, a LightGBM multiclass model produces calibrated 1X2 probabilities.
+
+    python -m sportpulse.train international
+"""
+from __future__ import annotations
+
+import json
+import logging
+import time
+from dataclasses import dataclass, field
+
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+
+from sportpulse import config
+from sportpulse.data.loaders import _download
+from sportpulse.evaluation import metrics as M
+from sportpulse.features.engine import EWM
+from sportpulse.models.match_outcome import fit_temperature, softmax
+
+log = logging.getLogger(__name__)
+URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
+OUT = config.ARTIFACTS_DIR / "international"
+HFA = 100.0
+TRAIN_START, TRAIN_END, VALID_END = "1994-01-01", "2023-01-01", "2024-07-01"
+
+
+def tournament_weight(t: str) -> tuple[float, int]:
+    """(Elo K, importance level 0-4)."""
+    t = str(t)
+    if t == "FIFA World Cup":
+        return 60.0, 4
+    if t in {"UEFA Euro", "Copa América", "African Cup of Nations", "AFC Asian Cup", "Gold Cup",
+             "Confederations Cup", "CONCACAF Championship", "Oceania Nations Cup"}:
+        return 50.0, 3
+    if "qualification" in t or "Nations League" in t:
+        return 40.0, 2
+    if t == "Friendly":
+        return 20.0, 0
+    return 30.0, 1
+
+
+@dataclass
+class NationState:
+    elo: float = 1500.0
+    games: int = 0
+    last: pd.Timestamp | None = None
+    s: dict = field(default_factory=lambda: {k: EWM(0.25) for k in ("gf", "ga", "pts")})
+    l: dict = field(default_factory=lambda: {k: EWM(0.06) for k in ("gf", "ga", "pts")})
+    comp: dict = field(default_factory=lambda: {k: EWM(0.15) for k in ("gf", "ga")})  # competitive only
+
+
+def _row(H: NationState, A: NationState, neutral: bool, level: int, date) -> dict:
+    hfa = 0.0 if neutral else HFA
+    r = {"elo_h": H.elo, "elo_a": A.elo, "elo_diff": H.elo - A.elo + hfa,
+         "elo_p": 1 / (1 + 10 ** (-(H.elo - A.elo + hfa) / 400)), "neutral": float(neutral),
+         "level": level, "games_h": min(H.games, 300), "games_a": min(A.games, 300)}
+    for side, T in (("h", H), ("a", A)):
+        r[f"rest_{side}"] = min((date - T.last).days, 400) if T.last is not None else np.nan
+        for k in ("gf", "ga", "pts"):
+            r[f"{side}_s_{k}"], r[f"{side}_l_{k}"] = T.s[k].value, T.l[k].value
+        r[f"{side}_c_gf"], r[f"{side}_c_ga"] = T.comp["gf"].value, T.comp["ga"].value
+    r["d_l_gd"] = (r["h_l_gf"] - r["h_l_ga"]) - (r["a_l_gf"] - r["a_l_ga"])
+    r["d_s_pts"] = r["h_s_pts"] - r["a_s_pts"]
+    return r
+
+
+def load_results(force: bool = False) -> pd.DataFrame:
+    p = _download(URL, config.RAW_DIR / "international_results.csv", force)
+    d = pd.read_csv(p)
+    d["date"] = pd.to_datetime(d["date"])
+    d = d.dropna(subset=["home_score", "away_score"]).sort_values("date", kind="mergesort")
+    d["neutral"] = d["neutral"].astype(str).str.upper().eq("TRUE")
+    # A "neutral" fixture played in one team's own country is effectively home.
+    d.loc[d["neutral"] & (d["country"] == d["home_team"]), "neutral"] = False
+    d["hg"], d["ag"] = d["home_score"].astype(int), d["away_score"].astype(int)
+    d["result"] = np.select([d.hg > d.ag, d.hg < d.ag], ["H", "A"], "D")
+    return d.reset_index(drop=True)
+
+
+def build(d: pd.DataFrame):
+    teams: dict[str, NationState] = {}
+    rows = []
+    for r in d.itertuples(index=False):
+        H = teams.setdefault(r.home_team, NationState())
+        A = teams.setdefault(r.away_team, NationState())
+        k, level = tournament_weight(r.tournament)
+        rows.append(_row(H, A, r.neutral, level, r.date))
+        gd = r.hg - r.ag
+        hfa = 0.0 if r.neutral else HFA
+        exp = 1 / (1 + 10 ** (-(H.elo - A.elo + hfa) / 400))
+        res = 1.0 if gd > 0 else 0.5 if gd == 0 else 0.0
+        mult = 1.0 if abs(gd) <= 1 else 1.5 if abs(gd) == 2 else (11 + abs(gd)) / 8
+        delta = k * mult * (res - exp)
+        H.elo += delta
+        A.elo -= delta
+        for T, gf, ga in ((H, r.hg, r.ag), (A, r.ag, r.hg)):
+            pts = 3 if gf > ga else 1 if gf == ga else 0
+            for k2, v in (("gf", gf), ("ga", ga), ("pts", pts)):
+                T.s[k2].update(float(v)); T.l[k2].update(float(v))
+            if level >= 1:
+                T.comp["gf"].update(float(gf)); T.comp["ga"].update(float(ga))
+            T.games += 1
+            T.last = r.date
+    return pd.DataFrame(rows), teams
+
+
+PARAMS = dict(objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=15,
+              min_data_in_leaf=200, feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1,
+              lambda_l2=10.0, verbose=-1, seed=config.SEED, num_threads=0)
+
+
+def run(refresh: bool = False) -> dict:
+    t0 = time.time()
+    OUT.mkdir(parents=True, exist_ok=True)
+    d = load_results(refresh)
+    F, teams = build(d)
+    y = d["result"].map({"H": 0, "D": 1, "A": 2}).to_numpy()
+    dt = d["date"]
+    train = ((dt >= TRAIN_START) & (dt < TRAIN_END)).to_numpy()
+    valid = ((dt >= TRAIN_END) & (dt < VALID_END)).to_numpy()
+    test = (dt >= VALID_END).to_numpy()
+    cols = list(F.columns)
+
+    b = lgb.train(PARAMS, lgb.Dataset(F[train], y[train]), 5000,
+                  valid_sets=[lgb.Dataset(F[valid], y[valid])],
+                  callbacks=[lgb.early_stopping(150, verbose=False)])
+    iters = b.best_iteration
+    logits = b.predict(F, num_iteration=iters, raw_score=True)
+    temp = fit_temperature(logits[valid], y[valid])
+    P = softmax(logits / temp)
+
+    elo_lr = LogisticRegression(max_iter=1000).fit(F.loc[train, ["elo_diff"]] / 400, y[train])
+    P_elo = elo_lr.predict_proba(F[["elo_diff"]] / 400)
+    base = np.tile(np.bincount(y[train], minlength=3) / train.sum(), (len(y), 1))
+
+    def board(mask):
+        out = []
+        for name, PP in (("SportPulse International (LightGBM)", P), ("World Football Elo (logistic)", P_elo),
+                         ("Base rates", base)):
+            s = M.summary(PP[mask], y[mask]); s["model"] = name; out.append(s)
+        return sorted(out, key=lambda r: r["rps"])
+
+    wc = test & (d["tournament"] == "FIFA World Cup").to_numpy()
+    comp = test & (d["tournament"] != "Friendly").to_numpy()
+    metrics = {
+        "data": {"matches": int(len(d)), "teams": len(teams), "first": str(dt.min().date()),
+                 "last": str(dt.max().date()), "train": int(train.sum()), "valid": int(valid.sum()),
+                 "test": int(test.sum()), "test_window": [VALID_END, str(dt.max().date())],
+                 "world_cup_2026_matches": int(wc.sum())},
+        "leaderboard": board(test), "competitive": board(comp),
+        "world_cup_2026": board(wc) if wc.sum() else [],
+        "iters": iters, "temperature": temp,
+    }
+    # Production refit on everything from TRAIN_START
+    full = (dt >= TRAIN_START).to_numpy()
+    b = lgb.train(PARAMS, lgb.Dataset(F[full], y[full]), int(iters * full.sum() / train.sum()))
+    b.save_model(str(OUT / "international.lgb"))
+    meta = {"features": cols, "temperature": temp, "hfa": HFA}
+    (OUT / "international_meta.json").write_text(json.dumps(meta))
+
+    snap = []
+    for name, T in teams.items():
+        if T.last is not None and T.last >= pd.Timestamp("2022-01-01"):
+            snap.append({"team": name, "elo": T.elo, "games": T.games, "last": T.last,
+                         "form_pts": T.s["pts"].value, "gf": T.l["gf"].value, "ga": T.l["ga"].value,
+                         **{f"state_{k}": v for k, v in _state_dict(T).items()}})
+    ranking = pd.DataFrame(snap).sort_values("elo", ascending=False).reset_index(drop=True)
+    ranking.to_parquet(OUT / "ranking.parquet", index=False)
+    tp = d.loc[test, ["date", "home_team", "away_team", "hg", "ag", "result", "tournament", "neutral"]].copy()
+    tp[["p_h", "p_d", "p_a"]] = P[test]
+    tp.to_parquet(OUT / "test_predictions.parquet", index=False)
+    metrics["runtime_sec"] = round(time.time() - t0, 1)
+    (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str))
+    return metrics
+
+
+def _state_dict(T: NationState) -> dict:
+    d = {"elo": T.elo, "games": T.games}
+    for k in ("gf", "ga", "pts"):
+        d[f"s_{k}_num"], d[f"s_{k}_den"] = T.s[k].num, T.s[k].den
+        d[f"l_{k}_num"], d[f"l_{k}_den"] = T.l[k].num, T.l[k].den
+    for k in ("gf", "ga"):
+        d[f"c_{k}_num"], d[f"c_{k}_den"] = T.comp[k].num, T.comp[k].den
+    return d
+
+
+class InternationalPredictor:
+    def __init__(self, path=OUT):
+        self.meta = json.loads((path / "international_meta.json").read_text())
+        self.booster = lgb.Booster(model_file=str(path / "international.lgb"))
+        self.ranking = pd.read_parquet(path / "ranking.parquet")
+        self.by_team = self.ranking.set_index("team")
+
+    def _state(self, team) -> NationState:
+        r = self.by_team.loc[team]
+        T = NationState(elo=r["state_elo"], games=int(r["state_games"]), last=pd.Timestamp(r["last"]))
+        for k in ("gf", "ga", "pts"):
+            T.s[k].num, T.s[k].den = r[f"state_s_{k}_num"], r[f"state_s_{k}_den"]
+            T.l[k].num, T.l[k].den = r[f"state_l_{k}_num"], r[f"state_l_{k}_den"]
+        for k in ("gf", "ga"):
+            T.comp[k].num, T.comp[k].den = r[f"state_c_{k}_num"], r[f"state_c_{k}_den"]
+        return T
+
+    def predict(self, home, away, neutral=True, tournament="FIFA World Cup", date=None):
+        date = pd.Timestamp(date or pd.Timestamp.today().normalize())
+        _, level = tournament_weight(tournament)
+        row = pd.DataFrame([_row(self._state(home), self._state(away), neutral, level, date)])
+        z = self.booster.predict(row[self.meta["features"]], raw_score=True)
+        return softmax(z / self.meta["temperature"])[0], row.iloc[0].to_dict()

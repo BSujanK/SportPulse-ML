@@ -199,14 +199,14 @@
     "learning_rate": 0.02,
     "num_leaves": 33,
     "min_data_in_leaf": 106,
-    "feature_fraction": 0.9787092394351908,
-    "bagging_fraction": 0.8875664116805573,
+    "feature_fraction": 0.98,
+    "bagging_fraction": 0.89,
     "bagging_freq": 1,
-    "lambda_l2": 57.27904470799624,
+    "lambda_l2": 57.3,
+    "lambda_l1": 3.8,
     "verbose": -1,
     "seed": 42,
-    "num_threads": 0,
-    "lambda_l1": 3.7958531426706403
+    "num_threads": 0
   },
   "resid_params": {
     "objective": "multiclass",
@@ -222,8 +222,8 @@
     "seed": 42,
     "num_threads": 0
   },
-  "fund_iters": 343,
+  "fund_iters": 407,
   "resid_iters": 382,
-  "t_fund": 1.0227291202917395,
-  "t_final": 1.0175589980807842
+  "t_fund": 1.0269550853372127,
+  "t_final": 1.0168367965294465
 }

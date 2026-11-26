@@ -5,7 +5,13 @@ import streamlit as st
 from sportpulse import config
 from webapp import state, ui
 
+import json as _json
+
 mm, pm = state.match_metrics(), state.player_metrics()
+fm = _json.loads((config.ARTIFACTS_DIR / "fpl/metrics.json").read_text())
+im = _json.loads((config.ARTIFACTS_DIR / "international/metrics.json").read_text())
+flb = {r["model"]: r for r in fm["leaderboard"]}
+ilb = {r["model"]: r for r in im["competitive"]}
 lb = {r["model"]: r for r in mm["leaderboard"]}
 prod = lb["SportPulse Market-Residual (production)"]
 mkt = lb["Bookmaker market (Shin)"]
@@ -40,9 +46,15 @@ ui.kpi_row([
     ui.kpi("Player value R²", f"{pm['value']['model']['r2']:.3f}", "", "log €, unseen players", "orange"),
 ])
 
-ui.section("Models", f"{6}")
+ui.section("Models", "8")
 v, d, a = pm["value"]["model"], pm["development"]["model"], pm["archetypes"]
 cards = [
+    ("premier-league-player-forecaster", "🎯", "PL Player Forecaster",
+     f"Next-gameweek FPL points, P(60′), P(goal), P(assist) for every PL player. Live through GW{fm['data']['latest_gameweek']}.",
+     ["Tabular Regression", f"best-XI {flb['SportPulse LightGBM (production)']['top_xi']:.2f} vs FPL xP {flb['FPL official xP']['top_xi']:.2f}", upd]),
+    ("national-team-forecaster", "🌍", "National Teams",
+     f"Tournament-weighted World Football Elo + LightGBM. Data through {im['data']['last']}, incl. World Cup 2026.",
+     ["Tabular Classification", f"RPS {ilb['SportPulse International (LightGBM)']['rps']:.4f}", upd]),
     ("match-outcome-market-residual", "⚡", "Match Forecaster",
      "LightGBM boosted from the de-vigged bookmaker prior. Production 1X2 model.",
      ["Tabular Classification", f"RPS {prod['rps']:.4f}", upd]),
@@ -62,7 +74,8 @@ cards = [
      f"Gaussian mixture on quality-normalised style; k={a['k']} chosen by BIC.",
      ["Clustering", f"{a['k']} roles", upd]),
 ]
-page_for = {"Match Forecaster": "webapp/views/match_forecaster.py", "Player Scout": "webapp/views/player_scout.py",
+page_for = {"PL Player Forecaster": "webapp/views/fpl.py", "National Teams": "webapp/views/international.py",
+            "Match Forecaster": "webapp/views/match_forecaster.py", "Player Scout": "webapp/views/player_scout.py",
             "Archetypes": "webapp/views/archetypes.py"}
 for row in range(0, len(cards), 3):
     cols = st.columns(3)
@@ -71,7 +84,7 @@ for row in range(0, len(cards), 3):
             st.markdown(ui.card(name, icon=icon, desc=desc, meta=meta), unsafe_allow_html=True)
             st.page_link(page_for[page], label=f"Open in {page} →")
 
-ui.section("Datasets", "2")
+ui.section("Datasets", "4")
 c1, c2 = st.columns(2)
 with c1:
     st.markdown(ui.card("club-matches-2000-2026", icon="🗂️", kind="ds",
@@ -87,6 +100,18 @@ with c2:
                               f"{pm['data']['players']:,} players", "8 editions"]),
                 unsafe_allow_html=True)
     st.page_link("webapp/views/datasets.py", label="Open dataset viewer →")
+
+c3, c4 = st.columns(2)
+with c3:
+    st.markdown(ui.card("fantasy-premier-league-2016-2027", icon="🗂️", kind="ds",
+                        desc="Per-player, per-fixture minutes, goals, assists, xG, xA, ICT, bonus and FPL points.",
+                        meta=["Tabular", f"{fm['data']['rows'] / 1000:.0f}k rows", f"{fm['data']['players']:,} players",
+                              f"through GW{fm['data']['latest_gameweek']} 2026-27"]), unsafe_allow_html=True)
+with c4:
+    st.markdown(ui.card("international-results-1872-2026", icon="🗂️", kind="ds",
+                        desc="Every men's international since 1872 with tournament and venue.",
+                        meta=["Tabular", f"{im['data']['matches'] / 1000:.0f}k rows", f"through {im['data']['last']}"]),
+                unsafe_allow_html=True)
 
 ui.section("How it works")
 st.markdown("""

@@ -35,6 +35,24 @@ def _download(url: str, dest: Path, force: bool = False) -> Path:
 # ══════════════════════════════════════════════════════════════════════════════
 #  MATCHES
 # ══════════════════════════════════════════════════════════════════════════════
+def _team_key(s: pd.Series) -> pd.Series:
+    return s.astype(str).str.lower().str.replace(r"[^a-z0-9]", "", regex=True)
+
+
+def canonicalise_teams(df: pd.DataFrame) -> pd.DataFrame:
+    """Map every spelling of a club (within a country) to its most recently used name."""
+    df = df.copy()
+    df["home"], df["away"] = df["home"].astype(str).str.strip(), df["away"].astype(str).str.strip()
+    long = pd.concat([df[["country", "date", "home"]].set_axis(["country", "date", "team"], axis=1),
+                      df[["country", "date", "away"]].set_axis(["country", "date", "team"], axis=1)])
+    long["key"] = _team_key(long["team"])
+    latest = long.sort_values("date").groupby(["country", "key"])["team"].last()
+    for side in ("home", "away"):
+        k = pd.MultiIndex.from_arrays([df["country"], _team_key(df[side])])
+        df[side] = latest.reindex(k).to_numpy()
+    return df
+
+
 _MATCH_RENAME = {
     "Division": "division", "MatchDate": "date", "HomeTeam": "home", "AwayTeam": "away",
     "FTHome": "hg", "FTAway": "ag", "FTResult": "result",
@@ -48,13 +66,39 @@ _MATCH_RENAME = {
 }
 
 
-def load_matches(force_download: bool = False) -> pd.DataFrame:
-    """Return the cleaned, chronologically sorted match table."""
+def _append_live_premier_league(df: pd.DataFrame, force: bool) -> pd.DataFrame:
+    """Append finished current-season Premier League fixtures (from the FPL feed) that
+    are newer than the last E0 match in the club dataset. Stats/odds stay NaN."""
+    try:
+        from sportpulse.data.fpl import latest_premier_league_results
+        last = df.loc[df["division"] == "E0", "date"].max()
+        new = latest_premier_league_results(last, force)
+    except Exception as e:  # noqa: BLE001 - live feed is best-effort
+        log.warning("Live Premier League feed unavailable: %s", e)
+        return df
+    if new.empty:
+        return df
+    known = set(df.loc[df.division == "E0", "home"].str.strip())
+    unknown = (set(new.home) | set(new.away)) - known
+    if unknown:
+        log.warning("Live feed: unmapped team names %s", sorted(unknown))
+    log.info("Live feed: +%d Premier League results through %s", len(new), new.date.max().date())
+    return pd.concat([df, new], ignore_index=True, sort=False)
+
+
+def load_matches(force_download: bool = False, live: bool = True) -> pd.DataFrame:
+    """Return the cleaned, chronologically sorted match table.
+
+    live: also append current-season Premier League results from the FPL feed.
+    """
     path = _download(config.MATCHES_URL, config.RAW_DIR / "matches.csv", force_download)
     raw = pd.read_csv(path, low_memory=False)
     df = raw[list(_MATCH_RENAME)].rename(columns=_MATCH_RENAME)
 
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df["source"] = "football-data"
+    if live:
+        df = _append_live_premier_league(df, force_download)
     df = df.dropna(subset=["date", "home", "away", "hg", "ag"])
     df = df[df["division"].isin(config.DIVISIONS)]
     df["hg"] = df["hg"].astype(int)
@@ -62,11 +106,14 @@ def load_matches(force_download: bool = False) -> pd.DataFrame:
     # Recompute result from the score (source column has a handful of NaNs).
     df["result"] = np.select([df.hg > df.ag, df.hg < df.ag], ["H", "A"], "D")
 
-    # Team identity is (country, name): avoids collisions across countries.
+    # Team identity is (country, normalised name). The source renames some clubs
+    # mid-history ("Nottm Forest" -> "Nott'm Forest", "MGladbach" -> "M'gladbach"),
+    # which would otherwise split a club's rating history in two.
     country = df["division"].map(lambda c: config.DIVISIONS[c][0])
-    df["home_id"] = country + "|" + df["home"].str.strip()
-    df["away_id"] = country + "|" + df["away"].str.strip()
     df["country"] = country
+    df = canonicalise_teams(df)
+    df["home_id"] = df["country"] + "|" + df["home"]
+    df["away_id"] = df["country"] + "|" + df["away"]
     df["tier"] = df["division"].map(lambda c: config.DIVISIONS[c][2]).astype(int)
 
     # ── Odds sanity: decimal odds must be in (1, 100] and the book overround
