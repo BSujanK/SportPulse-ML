@@ -34,8 +34,8 @@ if P.matches < 0.6 * pc.matches.max():
 
 ui.kpi_row([ui.kpi("xG / match", f"{P.xg_pg:.2f}"), ui.kpi("xG against / match", f"{P.xga_pg:.2f}"),
             ui.kpi("Possession", f"{P.possession * 100:.0f}", "%"), ui.kpi("PPDA", f"{P.ppda:.1f}", "",
-                                                                             "passes allowed per defensive action"),
-            ui.kpi("Field tilt", f"{P.field_tilt * 100:.0f}", "%", "share of final-third passes"),
+                                                                             "lower = more pressing"),
+            ui.kpi("Field tilt", f"{P.field_tilt * 100:.0f}", "%", "final-third pass share"),
             ui.kpi("Points / match", f"{P.points_pg:.2f}")])
 
 tabs = st.tabs([":material/insights: Overview", ":material/sports_soccer: Attack",
@@ -158,7 +158,7 @@ with tabs[3]:
     st.dataframe(
         pl[["player", "position", "minutes", "goals", "npxg", "xa", "xt", "npxg_p90", "xa_p90", "xt_p90",
             "prog_passes_p90", "prog_carries_p90", "pressures_p90", "tackles_int_p90"]],
-        hide_index=True, use_container_width=True, height=min(40 * (len(pl) + 1), 640),
+        hide_index=True, width="stretch", height=min(40 * (len(pl) + 1), 640),
         column_config={
             "player": st.column_config.TextColumn("Player", width="medium"), "position": "Position",
             "minutes": st.column_config.NumberColumn("Min", format="%d"),
@@ -181,7 +181,7 @@ with tabs[4]:
     L["Result"] = np.select([L.points == 3, L.points == 1], ["W", "D"], "L")
     L["Score"] = L.goals_for.astype(int).astype(str) + "–" + L.goals_against.astype(int).astype(str)
     st.dataframe(L[["date", "opponent", "venue", "Result", "Score", "xg", "xg_against", "possession", "ppda", "field_tilt"]],
-                 hide_index=True, use_container_width=True,
+                 hide_index=True, width="stretch",
                  column_config={"date": st.column_config.DateColumn("Date"), "opponent": "Opponent", "venue": "Venue",
                                 "xg": st.column_config.NumberColumn("xG", format="%.2f"),
                                 "xg_against": st.column_config.NumberColumn("xGA", format="%.2f"),

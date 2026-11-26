@@ -74,7 +74,7 @@ with tabs[1]:
     top = S.sort_values("xg", ascending=False).head(10).copy()
     top["play_pattern"] = np.where(top.shot_type == "Penalty", "Penalty", top.play_pattern)
     st.dataframe(top[["minute", "team", "player", "xg", "sb_xg", "body_part", "play_pattern", "outcome"]],
-                 hide_index=True, use_container_width=True,
+                 hide_index=True, width="stretch",
                  column_config={"minute": st.column_config.NumberColumn("Min", format="%d′"), "team": "Team",
                                 "player": "Player",
                                 "xg": st.column_config.ProgressColumn("SportPulse xG", min_value=0, max_value=1, format="%.2f"),
@@ -132,7 +132,7 @@ and teammates in the shooting cone, the goalkeeper's position, nearest-defender 
 Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
 """)
     ui.section("Out-of-fold, grouped by match", icon="layers")
-    st.dataframe(cv[["log_loss", "brier", "auc", "ece", "xg_sum", "goals", "n"]], use_container_width=True,
+    st.dataframe(cv[["log_loss", "brier", "auc", "ece", "xg_sum", "goals", "n"]], width="stretch",
                  column_config={c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in
                                 {"log_loss": "Log-loss ↓", "brier": "Brier ↓", "auc": "AUC ↑", "ece": "ECE ↓"}.items()}
                  | {"xg_sum": st.column_config.NumberColumn("Σ xG", format="%.0f"),
@@ -141,7 +141,7 @@ Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
     if tt:
         ui.section("Temporal test: trained on ≤2021, scored on 2022–24 tournaments", icon="clock")
         st.dataframe(pd.DataFrame(tt).T[["log_loss", "brier", "auc", "ece", "xg_sum", "goals", "n"]],
-                     use_container_width=True,
+                     width="stretch",
                      column_config={c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in
                                     {"log_loss": "Log-loss ↓", "brier": "Brier ↓", "auc": "AUC ↑", "ece": "ECE ↓"}.items()}
                      | {"xg_sum": st.column_config.NumberColumn("Σ xG", format="%.0f"),

@@ -131,7 +131,7 @@ hr {{ border-color: {BORDER} !important; }}
 /* ── Section icon, steps, kv, bullets ─────────────── */
 .hf-section-icon {{ color:{ORANGE}; display:inline-flex; }}
 .hf-steps {{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; margin: 6px 0 4px 0; }}
-.hf-step {{ flex:1 1 150px; background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:12px 14px; }}
+.hf-step {{ flex:1 1 0; min-width:140px; min-height:118px; background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:12px 14px; }}
 .hf-step-icon {{ width:28px; height:28px; border-radius:7px; display:flex; align-items:center; justify-content:center;
   color:{ORANGE}; background: rgba(255,107,0,.10); border:1px solid rgba(255,107,0,.30); margin-bottom:8px; }}
 .hf-step-t {{ font-weight:600; font-size:.9rem; }}
@@ -151,6 +151,67 @@ hr {{ border-color: {BORDER} !important; }}
 [data-testid="stPageLink"] a p {{ color:{MUTED} !important; font-size:.8rem !important; }}
 [data-testid="stPageLink"] a:hover p {{ color:{ORANGE_2} !important; }}
 .hf-card {{ min-height: 128px; }}
+
+/* ── Uniform cards (fixed-height containers) ──────── */
+[class*="st-key-spcard"] {{ border-radius:12px !important; overflow:hidden !important;
+  background: linear-gradient(180deg, {CARD_2} 0%, {CARD} 100%) !important;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), border-color .2s ease, box-shadow .3s ease; }}
+[class*="st-key-spcard"]:hover {{ transform: translateY(-3px); border-color: rgba(255,107,0,.55) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(255,107,0,.12); }}
+[class*="st-key-spcard"] > div {{ overflow:hidden !important; }}
+[class*="st-key-spcard"] [data-testid="stElementContainer"] {{ overflow:visible !important; }}
+.hf-cardbody {{ padding-bottom: 1rem; }}
+[class*="st-key-spcard"] [data-testid="stVerticalBlock"] {{ height:100%; justify-content:space-between; gap:.25rem; }}
+.hf-cardbody {{ display:flex; flex-direction:column; gap:6px; }}
+.hf-cardbody .hf-card-desc {{ margin-top:2px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; min-height:2.9em; }}
+.hf-cardbody .hf-card-meta {{ margin-top:2px; flex-wrap:nowrap; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; display:block; }}
+.hf-card-extra {{ color:{MUTED}; font-size:.78rem; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical;
+  overflow:hidden; }}
+[class*="st-key-spcard"] [data-testid="stPageLink"] a {{ padding:0 !important; }}
+[class*="st-key-spcard"] [data-testid="stPageLink"] a p {{ font-size:.8rem !important; font-weight:600; }}
+
+/* ── KPI tiles: equal height, single-line captions ─── */
+.hf-kpi {{ min-height: 98px; display:flex; flex-direction:column; justify-content:space-between; }}
+.hf-kpi .k, .hf-kpi .d {{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+
+/* ── Type scale (Hugging Face: Source Sans + IBM Plex Mono) ── */
+[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li {{ font-size:.95rem; line-height:1.62; }}
+[data-testid="stMarkdownContainer"] h3 {{ font-size:1.3rem !important; font-weight:700 !important; margin:.4rem 0 .6rem 0 !important; }}
+[data-testid="stMarkdownContainer"] h4 {{ font-size:1.05rem !important; font-weight:600 !important; margin:1.1rem 0 .5rem 0 !important;
+  color:{TEXT} !important; }}
+[data-testid="stMarkdownContainer"] table {{ border-collapse:separate; border-spacing:0; width:100%; font-size:.86rem;
+  border:1px solid {BORDER}; border-radius:10px; overflow:hidden; margin:.4rem 0 1rem 0; }}
+[data-testid="stMarkdownContainer"] th {{ background:{CARD_2}; color:{MUTED}; font-weight:600; text-align:left;
+  padding:8px 12px !important; border-bottom:1px solid {BORDER} !important; border-top:none !important;
+  border-left:none !important; border-right:none !important; }}
+[data-testid="stMarkdownContainer"] td {{ padding:7px 12px !important; border:none !important;
+  border-bottom:1px solid #1c1c1c !important; }}
+[data-testid="stMarkdownContainer"] tr:last-child td {{ border-bottom:none !important; }}
+[data-testid="stMarkdownContainer"] code {{ font-size:.82em; padding:1px 5px; border-radius:5px; background:#1a1a1a; color:{ORANGE_3}; }}
+label[data-testid="stWidgetLabel"] p {{ font-size:.82rem !important; color:{MUTED} !important; font-weight:600; }}
+.stCaption, [data-testid="stCaptionContainer"] {{ color:{DIM} !important; font-size:.78rem !important; }}
+
+/* ── Motion: Framer-Motion-style spring/ease-out (CSS) ── */
+@keyframes sp-enter {{ from {{ opacity:0; transform: translateY(14px); }} to {{ opacity:1; transform:none; }} }}
+@keyframes sp-rise {{ from {{ opacity:0; transform: translateY(18px) scale(.985); }} to {{ opacity:1; transform:none; }} }}
+@keyframes sp-fade {{ from {{ opacity:0; }} to {{ opacity:1; }} }}
+[class*="st-key-page_"] {{ animation: sp-enter .55s cubic-bezier(.22,1,.36,1) both; }}
+[class*="st-key-page_"] [class*="st-key-spcard"], [class*="st-key-page_"] .hf-kpi, [class*="st-key-page_"] .hf-step {{ animation: sp-rise .6s cubic-bezier(.22,1,.36,1) both; }}
+[class*="st-key-page_"] [data-testid="stColumn"]:nth-child(2) [class*="st-key-spcard"], [class*="st-key-page_"] [data-testid="stColumn"]:nth-child(2) .hf-kpi {{ animation-delay:.06s; }}
+[class*="st-key-page_"] [data-testid="stColumn"]:nth-child(3) [class*="st-key-spcard"], [class*="st-key-page_"] [data-testid="stColumn"]:nth-child(3) .hf-kpi {{ animation-delay:.12s; }}
+[class*="st-key-page_"] [data-testid="stColumn"]:nth-child(4) .hf-kpi {{ animation-delay:.18s; }}
+[class*="st-key-page_"] [data-testid="stColumn"]:nth-child(5) .hf-kpi {{ animation-delay:.24s; }}
+[class*="st-key-page_"] [data-testid="stColumn"]:nth-child(6) .hf-kpi {{ animation-delay:.30s; }}
+.hf-step:nth-child(3) {{ animation-delay:.05s; }} .hf-step:nth-child(5) {{ animation-delay:.10s; }}
+.hf-step:nth-child(7) {{ animation-delay:.15s; }} .hf-step:nth-child(9) {{ animation-delay:.20s; }}
+.hf-step:nth-child(11) {{ animation-delay:.25s; }}
+[data-baseweb="tab-panel"] > div {{ animation: sp-fade .35s cubic-bezier(.22,1,.36,1) both; }}
+.stPlotlyChart {{ animation: sp-fade .5s ease both; }}
+.hf-kpi, .hf-step {{ transition: border-color .2s ease, transform .35s cubic-bezier(.34,1.56,.64,1); }}
+.hf-kpi:hover, .hf-step:hover {{ border-color:{BORDER_HI}; transform: translateY(-2px); }}
+@media (prefers-reduced-motion: reduce) {{ *, *::before, *::after {{ animation:none !important; transition:none !important; }} }}
 
 /* ── Streamlit component polish ───────────────────── */
 [data-testid="stMetric"] {{ background:{CARD}; border:1px solid {BORDER}; border-radius:10px; padding:10px 14px; }}
@@ -195,7 +256,7 @@ pio.templates.default = "sportpulse"
 def plot(fig, height: int | None = None):
     if height:
         fig.update_layout(height=height)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
 
 # ── HTML components ─────────────────────────────────────────────────────────
@@ -231,10 +292,39 @@ def card(title: str, org: str = "sportpulse", icon: str = "box", kind: str = "",
             + f'<div class="hf-card-meta">{meta_html}</div></div>')
 
 
+def card_body(title: str, org: str = "sportpulse", icon: str = "box", kind: str = "",
+              desc: str = "", meta: list[str] | None = None, extra: str = "") -> str:
+    """Card content without its own frame (the frame is the fixed-height container)."""
+    meta_html = ' <span class="hf-dot">•</span> '.join(esc(m) for m in (meta or []))
+    return (f'<div class="hf-cardbody"><div class="hf-card-title"><span class="hf-icon {kind}">{_icon(icon, 14)}</span>'
+            f'<span title="{esc(org)}/{esc(title)}"><span class="org">{esc(org)}/</span>{esc(title)}</span></div>'
+            + (f'<div class="hf-card-desc">{esc(desc)}</div>' if desc else "")
+            + (f'<div class="hf-card-extra">{extra}</div>' if extra else "")
+            + f'<div class="hf-card-meta">{meta_html}</div></div>')
+
+
+_GRID_N = [0]
+
+
+def card_grid(items: list[dict], cols: int = 3, height: int = 176) -> None:
+    """Uniform grid of equal-size cards. item keys: title, org, icon, kind, desc, meta, extra, page, link."""
+    for row in range(0, len(items), cols):
+        columns = st.columns(cols, gap="medium")
+        for c, it in zip(columns, items[row:row + cols]):
+            _GRID_N[0] += 1
+            with c, st.container(border=True, height=height, key=f"spcard_{_GRID_N[0]}"):
+                st.markdown(card_body(it["title"], it.get("org", "sportpulse"), it.get("icon", "box"),
+                                      it.get("kind", ""), it.get("desc", ""), it.get("meta"), it.get("extra", "")),
+                            unsafe_allow_html=True)
+                if it.get("page"):
+                    st.page_link(it["page"], label=it.get("link", "Open"), icon=":material/arrow_forward:",
+                                 icon_position="right")
+
+
 def kpi(label: str, value: str, unit: str = "", delta: str = "", tone: str = "") -> str:
-    return (f'<div class="hf-kpi"><div class="k">{esc(label)}</div><div class="v">{esc(value)}'
+    return (f'<div class="hf-kpi"><div class="k" title="{esc(label)}">{esc(label)}</div><div class="v">{esc(value)}'
             f'<span class="u">{esc(unit)}</span></div>'
-            + (f'<div class="d {tone}">{esc(delta)}</div>' if delta else "") + "</div>")
+            + f'<div class="d {tone}" title="{esc(delta)}">{esc(delta) or "&nbsp;"}</div>' + "</div>")
 
 
 def kpi_row(items: list[str]) -> None:

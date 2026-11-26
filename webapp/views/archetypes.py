@@ -47,18 +47,17 @@ with t1:
 with t2:
     prof = A["profiles"]
     order = sorted(prof, key=lambda n: -prof[n]["size"])
-    for row in range(0, len(order), 3):
-        cols = st.columns(3)
-        for c, n in zip(cols, order[row:row + 3]):
-            p = prof[n]
-            top = out[out.archetype == n].nlargest(5, "overall")
-            dist = ", ".join(f"{k.replace('_', ' ')} {v:+.2f}" for k, v in p["distinguishing"].items())
-            lines = " · ".join(f"{k} {v * 100:.0f}%" for k, v in list(p["line_mix"].items())[:3])
-            with c:
-                st.markdown(ui.card(n, org="archetype", icon="component", kind="sp",
-                                    desc=f"Distinct traits: {dist}",
-                                    meta=[f"{p['size']:,} players", lines]), unsafe_allow_html=True)
-                st.caption("Top: " + ", ".join(f"{r.short_name} ({r.overall})" for r in top.itertuples()))
+    items = []
+    for n in order:
+        p = prof[n]
+        top = out[out.archetype == n].nlargest(4, "overall")
+        dist = ", ".join(f"{k.replace('_', ' ')} {v:+.2f}" for k, v in p["distinguishing"].items())
+        lines = " · ".join(f"{k} {v * 100:.0f}%" for k, v in list(p["line_mix"].items())[:3])
+        items.append(dict(title=n, org="archetype", icon="component", kind="sp",
+                          desc=f"Distinctive: {dist}",
+                          extra="Top: " + ", ".join(f"{r.short_name} ({r.overall})" for r in top.itertuples()),
+                          meta=[f"{p['size']:,} players", lines]))
+    ui.card_grid(items, cols=3, height=168)
     traits = pd.DataFrame({n: prof[n]["traits"] for n in order}).T
     fig = go.Figure(go.Heatmap(z=traits.values, x=[c.replace("_", " ") for c in traits.columns], y=traits.index,
                                colorscale=[[0, "#1e3a8a"], [0.5, "#111111"], [1, ui.ORANGE]], zmid=0,

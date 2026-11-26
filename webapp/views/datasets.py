@@ -103,7 +103,7 @@ t_view, t_card = st.tabs([":material/table_view: Dataset viewer", ":material/des
 with t_view:
     st.markdown(f'<div class="hf-mono">Split: {split}</div>', unsafe_allow_html=True)
     stats = column_stats(df)
-    st.dataframe(stats, hide_index=True, use_container_width=True, height=330,
+    st.dataframe(stats, hide_index=True, width="stretch", height=330,
                  column_config={"distribution": st.column_config.BarChartColumn("Distribution", y_min=0),
                                 "null %": st.column_config.ProgressColumn("Null %", min_value=0, max_value=100,
                                                                           format="%.1f"),

@@ -36,7 +36,7 @@ with t1:
                 ui.kpi("Home win", f"{(rs.result == 'H').mean() * 100:.1f}", "%"),
                 ui.kpi("Draws", f"{(rs.result == 'D').mean() * 100:.1f}", "%"),
                 ui.kpi("Last match", f"{rs.date.max():%d %b %Y}")])
-    st.dataframe(tbl, hide_index=True, use_container_width=True, height=min(38 * (len(tbl) + 1), 820),
+    st.dataframe(tbl, hide_index=True, width="stretch", height=min(38 * (len(tbl) + 1), 820),
                  column_config={"Pts": st.column_config.ProgressColumn(
                      "Pts", min_value=0, max_value=int(tbl.Pts.max()) if len(tbl) else 1, format="%d"),
                      "Form": st.column_config.TextColumn("Last 5")})
@@ -45,7 +45,7 @@ with t2:
     pr = P.power_rankings(div)
     pr.insert(0, "#", range(1, len(pr) + 1))
     st.dataframe(
-        pr, hide_index=True, use_container_width=True, height=min(38 * (len(pr) + 1), 820),
+        pr, hide_index=True, width="stretch", height=min(38 * (len(pr) + 1), 820),
         column_config={
             "team": "Team",
             "elo": st.column_config.ProgressColumn("Elo", min_value=float(pr.elo.min()) - 20,

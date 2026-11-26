@@ -24,7 +24,7 @@ with t1:
     df["ece"] *= 100
     st.dataframe(
         df[["Rank", "Type", "model", "rps", "log_loss", "brier", "accuracy", "ece", "n"]],
-        hide_index=True, use_container_width=True,
+        hide_index=True, width="stretch",
         column_config={
             "model": st.column_config.TextColumn("Model", width="large"),
             "rps": st.column_config.NumberColumn("RPS ↓", format="%.4f"),
@@ -57,7 +57,7 @@ with t2:
                       yaxis=dict(autorange="reversed"), height=max(380, 22 * len(pdv)))
     ui.plot(fig)
     st.dataframe(pdv[["league", "n", "rps_model", "rps_market", "rps_fund", "acc_model", "acc_market"]],
-                 hide_index=True, use_container_width=True,
+                 hide_index=True, width="stretch",
                  column_config={"league": "League", "n": "Matches",
                                 "rps_model": st.column_config.NumberColumn("RPS model", format="%.4f"),
                                 "rps_market": st.column_config.NumberColumn("RPS market", format="%.4f"),
@@ -86,7 +86,7 @@ with t4:
         bt["roi"] *= 100
         bt["roi_se"] *= 100
         st.dataframe(bt[["prices", "model", "edge", "bets", "profit_units", "roi", "roi_se", "z"]],
-                     hide_index=True, use_container_width=True,
+                     hide_index=True, width="stretch",
                      column_config={"edge": st.column_config.NumberColumn("EV edge >", format="percent"),
                                     "roi": st.column_config.NumberColumn("ROI %", format="%+.2f"),
                                     "roi_se": st.column_config.NumberColumn("± s.e. %", format="%.2f"),

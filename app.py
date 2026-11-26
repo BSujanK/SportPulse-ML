@@ -49,7 +49,10 @@ nav = st.navigation({
     ],
     "Data": [page("datasets.py", "Datasets", "database", "datasets")],
 }, position="top")
-nav.run()
+# Each page renders inside a container keyed by its path: switching pages mounts a fresh
+# container, which plays the CSS enter animation (reruns within a page keep the key).
+with st.container(key=f"page_{(nav.url_path or 'hub').replace('-', '_')}"):
+    nav.run()
 
 st.markdown(
     f'<div class="hf-footer"><span><b>SportPulse ML</b> · football forecasting and analysis on real data · MIT</span>'

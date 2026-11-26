@@ -56,7 +56,7 @@ with t_proj:
     st.dataframe(
         v[["name", "team", "position", "Fixture", "price", "xpts", "p_60", "p_goal", "p_assist",
            "value_per_m", "form6", "xg_r6", "xa_r6", "availability", "news"]],
-        hide_index=True, use_container_width=True, height=600,
+        hide_index=True, width="stretch", height=600,
         column_config={
             "name": "Player", "team": "Team", "position": "Pos",
             "price": st.column_config.NumberColumn("£m", format="%.1f"),
@@ -103,14 +103,14 @@ with t_xi:
                     ui.kpi("Formation", f"{cnt['DEF']}-{cnt['MID']}-{cnt['FWD']}"),
                     ui.kpi("Captain pick", xi_df.loc[xi_df.xpts.idxmax(), "name"])])
         st.dataframe(xi_df[["position", "name", "team", "opponent", "was_home", "price", "xpts", "p_goal"]],
-                     hide_index=True, use_container_width=True,
+                     hide_index=True, width="stretch",
                      column_config={"price": st.column_config.NumberColumn("£m", format="%.1f"),
                                     "xpts": st.column_config.NumberColumn("Exp. pts", format="%.2f"),
                                     "p_goal": st.column_config.NumberColumn("P(goal)", format="percent")})
 
 with t_eval:
     rows = pd.DataFrame(m["leaderboard"])
-    st.dataframe(rows, hide_index=True, use_container_width=True,
+    st.dataframe(rows, hide_index=True, width="stretch",
                  column_config={"model": st.column_config.TextColumn("Model", width="large"),
                                 "mae": st.column_config.NumberColumn("MAE ↓", format="%.3f"),
                                 "rmse": st.column_config.NumberColumn("RMSE ↓", format="%.3f"),
@@ -129,7 +129,7 @@ with t_eval:
     ui.plot(fig)
     c = pd.DataFrame(m["classifiers"]).T.rename(index={"p_60": "Plays 60+ min", "p_goal": "Scores", "p_assist": "Assists"})
     ui.section("Probability heads", icon="target")
-    st.dataframe(c, use_container_width=True,
+    st.dataframe(c, width="stretch",
                  column_config={k: st.column_config.NumberColumn(lbl, format="%.4f") for k, lbl in
                                 {"logloss": "Log-loss ↓", "logloss_prior": "Prior log-loss", "logloss_form": "Form log-loss",
                                  "brier": "Brier ↓", "auc": "AUC ↑", "base_rate": "Base rate"}.items()})

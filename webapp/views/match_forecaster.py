@@ -40,7 +40,7 @@ with right:
             odds = (o1.number_input("Home", 1.01, 100.0, 2.10, 0.01),
                     o2.number_input("Draw", 1.01, 100.0, 3.40, 0.01),
                     o3.number_input("Away", 1.01, 100.0, 3.60, 0.01))
-        go_btn = st.button("Compute", type="primary", use_container_width=True)
+        go_btn = st.button("Compute", type="primary", width="stretch")
 
         if home == away:
             st.warning("Pick two different teams.")
@@ -165,7 +165,7 @@ training, tuning, early stopping or calibration. After evaluation the model is r
         st.dataframe(
             show[["date", "division", "Match", "Score", "p_h", "p_d", "p_a", "pm_h", "pm_d", "pm_a",
                   "Pick", "Correct", "xg_h", "xg_a"]],
-            hide_index=True, use_container_width=True, height=520,
+            hide_index=True, width="stretch", height=520,
             column_config={
                 "date": st.column_config.DateColumn("Date", format="YYYY-MM-DD"),
                 "p_h": st.column_config.ProgressColumn("Model H", min_value=0, max_value=1, format="%.2f"),

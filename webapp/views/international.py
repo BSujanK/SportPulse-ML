@@ -63,7 +63,7 @@ with left:
         r = P.ranking.head(60).copy()
         r.insert(0, "#", range(1, len(r) + 1))
         st.dataframe(r[["#", "team", "elo", "form_pts", "gf", "ga", "games", "last"]], hide_index=True,
-                     use_container_width=True, height=560,
+                     width="stretch", height=560,
                      column_config={"team": "Nation",
                                     "elo": st.column_config.ProgressColumn("Elo", min_value=float(r.elo.min()) - 30,
                                                                            max_value=float(r.elo.max()), format="%.0f"),
@@ -76,7 +76,7 @@ with left:
                            ("FIFA World Cup 2026", "world_cup_2026")):
             ui.section(title, f"n = {m[key][0]['n']:,}" if m[key] else "")
             st.dataframe(pd.DataFrame(m[key])[["model", "rps", "log_loss", "brier", "accuracy", "ece"]],
-                         hide_index=True, use_container_width=True,
+                         hide_index=True, width="stretch",
                          column_config={"model": st.column_config.TextColumn("Model", width="large")} | {
                              c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in
                              {"rps": "RPS ↓", "log_loss": "Log-loss ↓", "brier": "Brier ↓", "accuracy": "Accuracy ↑",
@@ -90,7 +90,7 @@ with left:
         x["Match"] = x.home_team + " – " + x.away_team
         x["Score"] = x.hg.astype(str) + "–" + x.ag.astype(str)
         st.dataframe(x[["date", "tournament", "Match", "Score", "p_h", "p_d", "p_a"]], hide_index=True,
-                     use_container_width=True, height=560,
+                     width="stretch", height=560,
                      column_config={"date": st.column_config.DateColumn("Date"),
                                     "p_h": st.column_config.ProgressColumn("P(A)", min_value=0, max_value=1, format="%.2f"),
                                     "p_d": st.column_config.ProgressColumn("P(draw)", min_value=0, max_value=1, format="%.2f"),

@@ -81,7 +81,7 @@ with t_scout:
             order, sims = similar_players(emb, df.index.get_loc(idx), top=10, mask=mask)
             sim = df.iloc[order][["short_name", "age", "club_name", "overall", "value_eur", "archetype"]].copy()
             sim.insert(0, "sim", sims)
-            st.dataframe(sim, hide_index=True, use_container_width=True, height=390,
+            st.dataframe(sim, hide_index=True, width="stretch", height=390,
                          column_config={
                              "sim": st.column_config.ProgressColumn("Similarity", min_value=0, max_value=1, format="%.2f"),
                              "short_name": "Player", "club_name": "Club", "overall": "OVR",
@@ -112,7 +112,7 @@ with t_under:
     u = u.sort_values("value_gap", ascending=False).head(60)
     st.dataframe(u[["short_name", "age", "club_name", "league_name", "player_positions", "overall",
                     "proj_overall", "value_eur", "fair_value_eur", "value_gap", "archetype"]],
-                 hide_index=True, use_container_width=True, height=560,
+                 hide_index=True, width="stretch", height=560,
                  column_config={"short_name": "Player", "club_name": "Club", "league_name": "League",
                                 "player_positions": "Pos", "overall": "OVR",
                                 "proj_overall": st.column_config.NumberColumn("OVR next", format="%.1f"),
