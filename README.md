@@ -226,6 +226,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | xG | Keeper reach / outfield-only coverage split | flat | worse | rejected |
 | xG | CatBoost, and a LightGBM + CatBoost blend | better | worse | rejected |
 | xG | Club vs international-tournament flag | better | worse | rejected |
+| xG | 5-seed bagged ensemble | better | worse | rejected |
 | National teams | Tuned home advantage and K-factor scale | better | 0.1680 → 0.1679 | adopted |
 | National teams | Performance-vs-expectation, schedule strength, momentum | better | → 0.1672 | adopted |
 | National teams | Optuna-tuned LightGBM | better | → 0.1673 | adopted (validation winner) |
