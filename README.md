@@ -411,6 +411,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
 | PL players | Optuna-tuned heads | better | mixed | rejected |
 | PL players | FPL's pre-deadline xP as a feature (archive verified to equal the live feed; no outcome leak) | MAE 1.043 → 0.690, best XI 5.49 → 10.12 | MAE 0.998 → 0.874, best XI 4.66 → 6.56, within-GW Spearman 0.561 → 0.603 | adopted |
+| PL players | Ordering players by a blend of the prediction and FPL xP (weights 0.25 / 0.5 / 0.75) | within-GW Spearman 0.756 → 0.754 / 0.740 / 0.720 | 0.603 → 0.604 / 0.601 / 0.594 | rejected: validation prefers no blend |
 | PL players | LambdaRank head per gameweek (for ordering players), alone or rank-blended | within-GW Spearman 0.574 → 0.553 / 0.567 | 0.561 → 0.542 / 0.555 | rejected: the gap to FPL xP (0.720) is team news, not the objective |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
