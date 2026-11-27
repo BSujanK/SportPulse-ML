@@ -70,6 +70,17 @@ class MatchOutcomeModel:
     t_final: float = 1.0
     fund_booster: lgb.Booster | None = None
     resid_booster: lgb.Booster | None = None
+    # Optional second fundamentals booster with extra features (club squad values). It serves the
+    # no-odds "fundamentals" forecast; the market-residual prior keeps the base booster, so the
+    # production model is unchanged by features that did not improve it.
+    extra_fund_features: list[str] = field(default_factory=list)
+    plus_iters: int = 0
+    t_plus: float = 1.0
+    plus_booster: lgb.Booster | None = None
+
+    @property
+    def _plus_features(self) -> list[str]:
+        return self.fund_features + [c for c in self.extra_fund_features if c not in self.fund_features]
 
     # ── data helpers ────────────────────────────────────────────────────────
     def _frame(self, feats: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
@@ -100,6 +111,15 @@ class MatchOutcomeModel:
         self.fund_iters = self.fund_booster.best_iteration
         fund_logits = self.fund_booster.predict(Xf, num_iteration=self.fund_iters, raw_score=True)
         self.t_fund = fit_temperature(fund_logits[valid], y[valid])
+        if self.extra_fund_features:
+            Xp = self._frame(feats, self._plus_features)
+            dtr_p = lgb.Dataset(Xp[train], y[train], free_raw_data=False)
+            self.plus_booster = lgb.train(
+                self.fund_params, dtr_p, 5000, valid_sets=[lgb.Dataset(Xp[valid], y[valid], reference=dtr_p)],
+                callbacks=[lgb.early_stopping(early_stopping, verbose=False)])
+            self.plus_iters = self.plus_booster.best_iteration
+            self.t_plus = fit_temperature(
+                self.plus_booster.predict(Xp, num_iteration=self.plus_iters, raw_score=True)[valid], y[valid])
 
         prior = self._prior_logits(feats, fund_logits)
         Xa = self._frame(feats, self.all_features)
@@ -130,6 +150,11 @@ class MatchOutcomeModel:
         self.resid_booster = lgb.train(
             self.resid_params, lgb.Dataset(Xa[mask], y[mask], init_score=prior[mask]), ri)
         self.resid_iters = ri
+        if self.plus_booster is not None:
+            pi = max(int(self.plus_iters * scale), 1)
+            Xp = self._frame(feats, self._plus_features)
+            self.plus_booster = lgb.train(self.fund_params, lgb.Dataset(Xp[mask], y[mask]), pi)
+            self.plus_iters = pi
         return self
 
     # ── inference ───────────────────────────────────────────────────────────
@@ -140,12 +165,20 @@ class MatchOutcomeModel:
         Xa = self._frame(feats, self.all_features)
         final_logits = prior + self.resid_booster.predict(
             Xa, num_iteration=self.resid_iters, raw_score=True)
-        return {"fundamentals": softmax(fund_logits / self.t_fund),
+        if self.plus_booster is not None:
+            z = self.plus_booster.predict(self._frame(feats, self._plus_features), num_iteration=self.plus_iters,
+                                          raw_score=True)
+            fundamentals = softmax(z / self.t_plus)
+        else:
+            fundamentals = softmax(fund_logits / self.t_fund)
+        return {"fundamentals": fundamentals,
                 "final": softmax(final_logits / self.t_final),
                 "has_market": np.isfinite(self._market(feats)).all(axis=1)}
 
     def feature_importance(self) -> pd.DataFrame:
-        f = pd.Series(self.fund_booster.feature_importance("gain"), self.fund_features)
+        f = (pd.Series(self.plus_booster.feature_importance("gain"), self._plus_features)
+             if self.plus_booster is not None else
+             pd.Series(self.fund_booster.feature_importance("gain"), self.fund_features))
         r = pd.Series(self.resid_booster.feature_importance("gain"), self.all_features)
         out = pd.DataFrame({"fundamentals": f / f.sum(), "market_residual": r / max(r.sum(), 1e-9)})
         return out.fillna(0).sort_values("fundamentals", ascending=False)
@@ -155,9 +188,14 @@ class MatchOutcomeModel:
         path.mkdir(parents=True, exist_ok=True)
         self.fund_booster.save_model(str(path / "outcome_fundamentals.lgb"))
         self.resid_booster.save_model(str(path / "outcome_market_residual.lgb"))
+        plus = path / "outcome_fundamentals_plus.lgb"
+        if self.plus_booster is not None:
+            self.plus_booster.save_model(str(plus))
+        elif plus.exists():
+            plus.unlink()
         meta = {k: getattr(self, k) for k in
                 ["fund_features", "all_features", "divisions", "fund_params", "resid_params",
-                 "fund_iters", "resid_iters", "t_fund", "t_final"]}
+                 "fund_iters", "resid_iters", "t_fund", "t_final", "extra_fund_features", "plus_iters", "t_plus"]}
         (path / "outcome_meta.json").write_text(json.dumps(meta, indent=2))
 
     @classmethod
@@ -166,4 +204,7 @@ class MatchOutcomeModel:
         m = cls(**meta)
         m.fund_booster = lgb.Booster(model_file=str(path / "outcome_fundamentals.lgb"))
         m.resid_booster = lgb.Booster(model_file=str(path / "outcome_market_residual.lgb"))
+        plus = path / "outcome_fundamentals_plus.lgb"
+        if m.extra_fund_features and plus.exists():
+            m.plus_booster = lgb.Booster(model_file=str(plus))
         return m

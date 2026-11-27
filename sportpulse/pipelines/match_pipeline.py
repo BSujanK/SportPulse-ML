@@ -87,13 +87,13 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     test = (d >= config.VALID_END).to_numpy()
     divisions = sorted(matches["division"].unique())
 
-    # Club squad values help the fundamentals model on validation and test; in the market-residual
-    # booster they improve validation but not test, so that booster keeps its previous feature set.
-    fund_cols = fundamental_features(list(feats.columns))
+    # Club squad values help the fundamentals model on validation and test, but not the market-residual
+    # model (as a feature or through its prior). They feed a second fundamentals booster only.
     all_cols = [c for c in feats.columns if c not in club_value.COLS]
+    fund_cols = fundamental_features(all_cols)
 
     tuning = None
-    model = MatchOutcomeModel(fund_cols, all_cols, divisions)
+    model = MatchOutcomeModel(fund_cols, all_cols, divisions, extra_fund_features=list(club_value.COLS))
     if trials:
         model.fund_params, tuning = _tune_fundamentals(feats, y, train, valid, fund_cols,
                                                        divisions, trials)
