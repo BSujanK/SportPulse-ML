@@ -404,6 +404,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
 | PL players | Optuna-tuned heads | better | mixed | rejected |
+| PL players | LambdaRank head per gameweek (for ordering players), alone or rank-blended | within-GW Spearman 0.574 → 0.553 / 0.567 | 0.561 → 0.542 / 0.555 | rejected: the gap to FPL xP (0.720) is team news, not the objective |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
 | Club matches | Asian-handicap price as a market feature | worse | 0.20335 → 0.20334 | rejected |
