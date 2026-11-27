@@ -225,5 +225,11 @@
   "fund_iters": 407,
   "resid_iters": 382,
   "t_fund": 1.0269550853372127,
-  "t_final": 1.0168367965294465
+  "t_final": 1.0168367965294465,
+  "extra_fund_features": [
+    "cv18_diff",
+    "cv11_diff"
+  ],
+  "plus_iters": 421,
+  "t_plus": 1.0342313073156213
 }

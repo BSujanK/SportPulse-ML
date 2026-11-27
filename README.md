@@ -52,7 +52,7 @@ SportPulse ML is an end-to-end machine-learning system:
 | **SportPulse Market-Residual (production)** | **0.2033** | 1.0005 | 0.5984 | 50.7% | 1.17% |
 | Bookmaker market (Shin) | 0.2035 | 1.0008 | 0.5986 | 50.5% | 1.11% |
 | Poisson-DC goals model | 0.2038 | 1.0024 | 0.5995 | 50.6% | 1.57% |
-| SportPulse Fundamentals (no odds) | 0.2078 | 1.0148 | 0.6081 | 49.3% | 1.03% |
+| SportPulse Fundamentals (no odds) | 0.2076 | 1.0142 | 0.6077 | 49.3% | 1.17% |
 | Pi-rating + Elo logistic | 0.2097 | 1.0206 | 0.6119 | 48.9% | 1.03% |
 | Elo logistic | 0.2103 | 1.0223 | 0.6132 | 48.8% | 1.06% |
 | Base rates (train prior) | 0.2283 | 1.0748 | 0.6503 | 43.6% | 0.78% |
@@ -148,7 +148,7 @@ league on the previous three seasons, time decay ξ chosen on the 2023-24 valida
 |---|---|---|---|---|
 | **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0082 (z = −15.4) |
 | Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0081 (z = −16.0) |
-| SportPulse Fundamentals, no odds | this repo | 0.2079 | 1.0155 | −0.0038 (z = −8.3) |
+| SportPulse Fundamentals, no odds | this repo | 0.2077 | 1.0150 | −0.0040 (z = −8.7) |
 | Pi-ratings + Elo logistic | Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
 | Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2117 | 1.0317 | — |
 
@@ -365,6 +365,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
 | Club matches | Asian-handicap price as a market feature | worse | 0.20335 → 0.20334 | rejected |
 | Club matches | Asian-handicap price + best-vs-average odds gaps | better | 0.20335 → 0.20342 | rejected |
+| Club matches, no odds | Transfermarkt club squad value (point-in-time, home minus away) | 0.20788 → 0.20758 | 0.20776 → 0.20757 | adopted (second fundamentals booster) |
+| Club matches, with odds | Same feature in the market-residual model | 0.20420 → 0.20415 | 0.20335 → 0.20338 | rejected (production unchanged) |
 | National teams | Recency-weighted training | worse | — | rejected |
 | xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
 
