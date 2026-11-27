@@ -148,7 +148,7 @@ with tabs[4]:
                                         "minutes": st.column_config.NumberColumn("Min", format="%d"),
                                         "vaep_p90": st.column_config.NumberColumn("VAEP / 90", format="%.3f"),
                                         "vaep": st.column_config.NumberColumn("Total", format="%.2f")})
-        ui.section("Model check: trained before July 2022, scored on the 2022–24 tournaments", icon="clock")
+        ui.section("Model check: trained before July 2022, scored on the 2022–24 hold-out", icon="clock")
         rows_ = [{"Target": f"P({k} within 10 actions)", "Model": mdl, **v}
                  for k, d_ in vm["evaluation"].items() for mdl, v in d_.items()]
         st.dataframe(pd.DataFrame(rows_), hide_index=True, width="stretch",
