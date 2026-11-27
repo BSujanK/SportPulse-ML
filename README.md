@@ -357,6 +357,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Club matches | Log-linear blend with the Poisson-Dixon-Coles model | better | worse | rejected |
 | Over/under 2.5 | Booster initialised from the market price | better | worse | rejected |
 | Transfer fees | Squared-error loss, monotone value constraint, buyer-premium features, smaller trees | worse | mixed | rejected (Huber kept) |
+| Transfer fees | Optuna-tuned LightGBM (40 trials) | 0.5486 → 0.5465 MAE log | 0.5375 → 0.5414 | rejected |
 | Transfermarkt models | No minutes share when the club has under 15 known games | — | fees 0.535 → 0.537 MAE log | adopted (removes inflated shares for uncovered clubs) |
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
@@ -422,7 +423,8 @@ pytest -q
   (football-data.co.uk + clubelo), updated through 2026-09-03.
 * **Transfermarkt.** [dcaribou/transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets), a public
   snapshot to 6 July 2026 that its author has stopped refreshing. Valuations are Transfermarkt's crowd-sourced
-  estimates; fees are as recorded there.
+  estimates; fees are as recorded there. Squad values derived from it are frozen at that snapshot: 2026-27 club
+  and international forecasts use pre-summer-2026 squads, and clubs promoted in 2026 have no value.
 * **Players.** [305kishan/FIFA](https://github.com/305kishan/FIFA): sofifa scrapes of EA FIFA 15–22. FIFA 22 is the
   newest player edition in the public sources this pipeline uses, so player outputs describe that snapshot plus one
   projected season. A newer sofifa export with the same schema can be dropped into `data/raw/`.

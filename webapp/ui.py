@@ -82,7 +82,7 @@ hr {{ border-color: {BORDER} !important; }}
 .hf-tag.ds  {{ border-color: rgba(34,197,94,.35); color: #86efac; background: rgba(34,197,94,.06); }}
 .hf-tag.lic {{ border-color: rgba(167,139,250,.35); color: #c4b5fd; background: rgba(167,139,250,.06); }}
 
-/* ── Repo header ───────────────────────────────────── */
+/* ── Repo header ──────────────────────────────────── */
 .hf-repo {{ display:flex; align-items:center; gap:10px; font-family:'IBM Plex Mono',monospace;
   font-size: 1.35rem; font-weight: 600; margin: 0; flex-wrap: wrap; }}
 .hf-repo .org {{ color: {MUTED}; font-weight: 500; }}
@@ -91,7 +91,7 @@ hr {{ border-color: {BORDER} !important; }}
   border-radius: 6px; border:1px solid {BORDER}; color:{MUTED}; }}
 .hf-badge.live {{ color:{WIN}; border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.07); }}
 
-/* ── Widget box ("Inference API") ──────────────────── */
+/* ── Widget box ("Inference API") ────────────────── */
 .hf-widget-head {{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:.92rem;
   color:{TEXT}; padding-bottom: 8px; border-bottom: 1px solid {BORDER}; margin-bottom: 10px; }}
 .hf-widget-head .bolt {{ color:{ORANGE}; }}
@@ -365,7 +365,9 @@ def readable_feature(name: str) -> str:
                "month": "Month", "lg_n": "League sample size", "lg_hg": "League home goals per match",
                "lg_ag": "League away goals per match", "lg_draw": "League draw rate", "lg_hw": "League home-win rate",
                "xh_s": "Expected home goals (short form)", "xa_s": "Expected away goals (short form)",
-               "xh_l": "Expected home goals (long form)", "xa_l": "Expected away goals (long form)"}
+               "xh_l": "Expected home goals (long form)", "xa_l": "Expected away goals (long form)",
+               "cv18_diff": "Squad value gap (top 18, Transfermarkt)", "cv11_diff": "Top-11 value gap (Transfermarkt)",
+               "sv26_diff": "National squad value gap (top 26)", "sv11_diff": "National top-11 value gap"}
     if name in special:
         return special[name]
     parts = name.split("_")
