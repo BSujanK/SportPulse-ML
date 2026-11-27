@@ -128,11 +128,11 @@ Direction of the next valuation change (moves over 5%): 79.9% of 30,288. Fees of
 | P(scores) | Base rate | 0.05634 | 0.009959 | 0.5000 |
 | P(scores) | xT (calibrated) | 0.04757 | 0.008853 | 0.7902 |
 | P(scores) | Location-only LightGBM | 0.04424 | 0.008460 | 0.8117 |
-| P(scores) | **SportPulse VAEP (LightGBM)** | 0.04307 | 0.008384 | 0.8322 |
+| P(scores) | **SportPulse VAEP (LightGBM)** | 0.04302 | 0.008394 | 0.8347 |
 | P(concedes) | Base rate | 0.01433 | 0.001976 | 0.5000 |
 | P(concedes) | xT (calibrated) | 0.01434 | 0.001976 | 0.7399 |
 | P(concedes) | Location-only LightGBM | 0.01196 | 0.001883 | 0.8203 |
-| P(concedes) | **SportPulse VAEP (LightGBM)** | 0.01175 | 0.001880 | 0.8507 |
+| P(concedes) | **SportPulse VAEP (LightGBM)** | 0.01153 | 0.001848 | 0.8607 |
 <!-- RESULTS:END -->
 
 ## Comparison with published work
@@ -318,7 +318,9 @@ team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Fores
 ### VAEP action values
 * Passes (with set-piece types), carries, shots and on-ball defensive actions in one time-ordered stream per match.
 * Features: the action and the two before it in the acting team's frame (type, success, start and end location,
-  distance and angle to goal, time gaps, possession change), score difference and clock.
+  distance and angle to goal, time gaps, possession change), the third previous action's type, team and timing,
+  possession context (actions and seconds since it began, who started it, distance advanced since), score
+  difference and clock.
 * LightGBM estimates P(score) and P(concede) within the next 10 actions. Values are out-of-fold (2 folds by match).
 * Player ratings use minutes estimated from the event stream and line-ups.
 
@@ -370,6 +372,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Club matches, with odds | Same feature in the market-residual model | 0.20420 → 0.20415 | 0.20335 → 0.20338 | rejected (production unchanged) |
 | National teams | Recency-weighted training | worse | — | rejected |
 | xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
+| VAEP | Third previous action + possession context | P(scores) 0.046735 → 0.046561, P(concedes) 0.013719 → 0.013512 | AUC 0.8322 → 0.8347 and 0.8507 → 0.8607 | adopted |
 
 The consistent pattern: forecasts priced by liquid betting markets (1X2, over/under) and FPL points (driven by
 unannounced line-ups) are at the ceiling of public data. Shot-level xG and national-team ratings still had headroom.

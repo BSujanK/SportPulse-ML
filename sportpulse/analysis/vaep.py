@@ -31,7 +31,7 @@ PARAMS = dict(objective="binary", learning_rate=0.08, num_leaves=63, min_data_in
 
 def build_actions(matches, passes, carries, shots, defense) -> pd.DataFrame:
     """One time-ordered SPADL-like action table for all matches."""
-    keep = ["match_id", "team", "player", "period", "minute", "second", "x", "y"]
+    keep = ["match_id", "team", "player", "period", "minute", "second", "x", "y", "possession"]
     p = passes[keep + ["end_x", "end_y", "complete", "pass_type", "cross", "under_pressure", "play_pattern"]].copy()
     p["type"] = np.where(p.cross.fillna(False), "cross", p.pass_type.map(PASS_MAP).fillna("pass"))
     p["success"] = p.complete.fillna(False).astype(float)
@@ -110,6 +110,24 @@ def features_labels(a: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray, np.ndarr
         X[f"end_x_{k}"], X[f"end_y_{k}"] = np.where(nan, np.nan, pex), np.where(nan, np.nan, pey)
         X[f"dt_{k}"] = np.where(nan, np.nan, t - t[idx])
         X[f"gap_{k}"] = np.where(nan, np.nan, np.hypot(X.x - pex, X.y - pey))
+
+    # third previous action (type, team, time gap)
+    ok3 = np.r_[np.zeros(3, bool), (match[3:] == match[:-3]) & (period[3:] == period[:-3])]
+    i3 = np.maximum(np.arange(n) - 3, 0)
+    X["type_3"] = pd.Categorical(np.where(ok3, a.type.to_numpy()[i3], None), categories=TYPES)
+    X["same_team_3"] = np.where(ok3, (team[i3] == team).astype(float), np.nan)
+    X["dt_3"] = np.where(ok3, t - t[i3], np.nan)
+    # possession context (StatsBomb possession id): actions and seconds since it began, whether the actor's team
+    # started it, and how far the actor is from where it started (in the actor's frame)
+    if "possession" in a:
+        pid = match.astype(np.int64) * 10000 + a.possession.fillna(-1).to_numpy().astype(np.int64)
+        first = pd.Series(np.arange(n)).groupby(pid, sort=False).transform("first").to_numpy()
+        own = team == team[first]
+        sx = a.x.to_numpy(float)[first]
+        X["poss_n"] = pd.Series(np.arange(n)).groupby(pid, sort=False).cumcount().to_numpy().astype(float)
+        X["poss_t"] = t - t[first]
+        X["poss_own"] = own.astype(float)
+        X["poss_progress"] = X.x.to_numpy() - np.where(own, sx, 120 - sx)
 
     # labels: goal for / against the actor within the next HORIZON actions of the same match and period
     scores, concedes = np.zeros(n, bool), np.zeros(n, bool)
