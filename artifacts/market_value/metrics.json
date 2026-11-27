@@ -12,11 +12,11 @@
     "leaderboard": [
       {
         "model": "SportPulse forecast (LightGBM)",
-        "mae_log": 0.1997643669436198,
-        "median_ape": 0.13319111992665422,
-        "within_25pct": 0.7346412582331294,
-        "r2_log": 0.9637676902564966,
-        "spearman": 0.9794274188278651,
+        "mae_log": 0.19705801022191163,
+        "median_ape": 0.1291897861132726,
+        "within_25pct": 0.7447202493964326,
+        "r2_log": 0.9635782209774292,
+        "spearman": 0.9791403653303515,
         "n": 42663
       },
       {
@@ -38,25 +38,25 @@
         "n": 42663
       }
     ],
-    "direction_accuracy": 0.7986661384046487,
+    "direction_accuracy": 0.8012414157422081,
     "direction_n": 30288,
-    "iters": 1898,
+    "iters": 1551,
     "importance": {
-      "n_valuations": 0.1761,
-      "age": 0.0882,
-      "league": 0.0758,
-      "prev_change": 0.0728,
-      "prev_log_value": 0.0713,
-      "peak_log_value": 0.0588,
-      "days_since_value": 0.0572,
-      "minutes_180": 0.054,
-      "league_value_index": 0.0433,
-      "club_value_index": 0.034,
-      "age2": 0.0257,
-      "below_peak": 0.0226,
-      "sub_position": 0.0211,
-      "club_league_ppg_365": 0.0185,
-      "change_1y": 0.0182
+      "below_peak": 0.1054,
+      "n_valuations": 0.0872,
+      "prev_change": 0.0844,
+      "age": 0.0767,
+      "league": 0.0734,
+      "prev_log_value": 0.0718,
+      "days_since_value": 0.0618,
+      "minutes_180": 0.0603,
+      "league_value_index": 0.0474,
+      "peak_log_value": 0.0447,
+      "club_value_index": 0.0295,
+      "club_league_ppg_365": 0.0213,
+      "sub_position": 0.0201,
+      "minutes_share_365": 0.0196,
+      "age2": 0.0175
     }
   },
   "fair_value": {
@@ -171,5 +171,5 @@
   },
   "asof": "2026-06-13",
   "current_players": 14858,
-  "runtime_sec": 447.7
+  "runtime_sec": 450.5
 }

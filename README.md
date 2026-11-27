@@ -115,13 +115,13 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 | Transfer fee | **SportPulse fee model (LightGBM)** | **39.4%** | 0.537 | 0.800 | 33% |
 | Transfer fee | Transfermarkt value, calibrated | 45.8% | 0.666 | 0.683 | 30% |
 | Transfer fee | Transfermarkt value | 49.9% | 0.665 | 0.674 | 31% |
-| Next valuation | **SportPulse forecast (LightGBM)** | **13.3%** | 0.200 | 0.964 | 73% |
+| Next valuation | **SportPulse forecast (LightGBM)** | **12.9%** | 0.197 | 0.964 | 74% |
 | Next valuation | Persistence + age trend | 18.4% | 0.234 | 0.951 | 68% |
 | Next valuation | Persistence (last Transfermarkt value) | 16.7% | 0.232 | 0.942 | 67% |
 | Fair value, no player history | **SportPulse fair value (LightGBM)** | **43.7%** | 0.587 | 0.763 | 30% |
 | Fair value, no player history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
 
-Direction of the next valuation change (moves over 5%): 79.9% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
+Direction of the next valuation change (moves over 5%): 80.1% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
 
 ### VAEP action values (8.1M actions; trained before 2022-07-01, tested on 572,730 actions from the 2022–24 hold-out competitions)
 
@@ -400,6 +400,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Over/under 2.5 | Booster initialised from the market price | better | worse | rejected |
 | Transfer fees | Squared-error loss, monotone value constraint, buyer-premium features, smaller trees | worse | mixed | rejected (Huber kept) |
 | Transfer fees | Optuna-tuned LightGBM (40 trials) | 0.5486 → 0.5465 MAE log | 0.5375 → 0.5414 | rejected |
+| Next valuation | Optuna-tuned LightGBM (20 trials) | 0.1967 → 0.1948 MAE log | 0.1998 → 0.1971; median error 13.3% → 12.9% | adopted |
+| Fair value | Optuna-tuned LightGBM (20 trials) | 0.5474 → 0.5517 | 0.5874 → 0.5954 | rejected |
 | Transfermarkt models | No minutes share when the club has under 15 known games | — | fees 0.535 → 0.537 MAE log | adopted (removes inflated shares for uncovered clubs) |
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |

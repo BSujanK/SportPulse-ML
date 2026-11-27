@@ -13,7 +13,7 @@ import pandas as pd
 
 from sportpulse import config
 from sportpulse.data import transfermarkt as T
-from sportpulse.models.market_value import ValueBooster, metrics
+from sportpulse.models.market_value import PARAMS, ValueBooster, metrics
 
 log = logging.getLogger(__name__)
 OUT = config.ARTIFACTS_DIR / "market_value"
@@ -21,6 +21,9 @@ START, TRAIN_END, VALID_END = "2013-07-01", "2024-07-01", "2025-07-01"
 LAGS = ["prev_log_value", "days_since_value", "prev_change", "change_1y", "peak_log_value", "below_peak",
         "n_valuations"]
 CAT_COLS = ["position", "sub_position", "foot", "league"]
+# Optuna TPE (20 trials, validation 2024-25) for the next-valuation model: validation and test both improved.
+# The same search did not help the fair-value or fee models, which keep the defaults.
+FORECAST_PARAMS = dict(num_leaves=120, min_data_in_leaf=56, feature_fraction=0.735, lambda_l2=26.1, alpha=0.341)
 
 
 def _splits(dates: pd.Series):
@@ -77,7 +80,8 @@ def run() -> dict:
 
     # ── 1. Next-valuation forecast ──────────────────────────────────────────────────────
     has = V["prev_log_value"].notna().to_numpy()
-    fc = ValueBooster(num, CAT_COLS, offset_col="prev_log_value").fit(V, V.y, tr & has, va & has)
+    fc = ValueBooster(num, CAT_COLS, params=dict(PARAMS, **FORECAST_PARAMS),
+                      offset_col="prev_log_value").fit(V, V.y, tr & has, va & has)
     m = te & has
     y = V.y.to_numpy()
     pers = V["prev_log_value"].to_numpy()
