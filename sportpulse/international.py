@@ -126,6 +126,7 @@ def build(d: pd.DataFrame):
     return pd.DataFrame(rows), teams
 
 
+SEEDS = (42, 7, 13, 21, 99)
 # Optuna TPE (30 trials) on validation log-loss.
 PARAMS = dict(objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=5,
               min_data_in_leaf=104, feature_fraction=0.65, bagging_fraction=0.8, bagging_freq=1,
@@ -144,11 +145,16 @@ def run(refresh: bool = False) -> dict:
     test = (dt >= VALID_END).to_numpy()
     cols = list(F.columns)
 
-    b = lgb.train(PARAMS, lgb.Dataset(F[train], y[train]), 5000,
-                  valid_sets=[lgb.Dataset(F[valid], y[valid])],
-                  callbacks=[lgb.early_stopping(150, verbose=False)])
-    iters = b.best_iteration
-    logits = b.predict(F, num_iteration=iters, raw_score=True)
+    # 5-seed bagged ensemble (validation and test both improve over a single model)
+    iters_by_seed, zs = {}, []
+    for seed in SEEDS:
+        b = lgb.train(dict(PARAMS, seed=seed), lgb.Dataset(F[train], y[train]), 5000,
+                      valid_sets=[lgb.Dataset(F[valid], y[valid])],
+                      callbacks=[lgb.early_stopping(150, verbose=False)])
+        iters_by_seed[seed] = b.best_iteration
+        zs.append(b.predict(F, num_iteration=b.best_iteration, raw_score=True))
+    logits = np.mean(zs, axis=0)
+    iters = int(np.mean(list(iters_by_seed.values())))
     temp = fit_temperature(logits[valid], y[valid])
     P = softmax(logits / temp)
 
@@ -182,9 +188,12 @@ def run(refresh: bool = False) -> dict:
     }
     # Production refit on everything from TRAIN_START
     full = (dt >= TRAIN_START).to_numpy()
-    b = lgb.train(PARAMS, lgb.Dataset(F[full], y[full]), int(iters * full.sum() / train.sum()))
-    b.save_model(str(OUT / "international.lgb"))
-    meta = {"features": cols, "temperature": temp, "hfa": HFA}
+    for f_ in OUT.glob("international*.lgb"):
+        f_.unlink()
+    for seed, it in iters_by_seed.items():
+        b = lgb.train(dict(PARAMS, seed=seed), lgb.Dataset(F[full], y[full]), int(it * full.sum() / train.sum()))
+        b.save_model(str(OUT / f"international_s{seed}.lgb"))
+    meta = {"features": cols, "temperature": temp, "hfa": HFA, "k_scale": K_SCALE, "seeds": list(SEEDS)}
     (OUT / "international_meta.json").write_text(json.dumps(meta))
 
     snap = []
@@ -219,7 +228,8 @@ def _state_dict(T: NationState) -> dict:
 class InternationalPredictor:
     def __init__(self, path=OUT):
         self.meta = json.loads((path / "international_meta.json").read_text())
-        self.booster = lgb.Booster(model_file=str(path / "international.lgb"))
+        self.boosters = [lgb.Booster(model_file=str(path / f"international_s{s}.lgb"))
+                         for s in self.meta.get("seeds", [])] or [lgb.Booster(model_file=str(path / "international.lgb"))]
         self.ranking = pd.read_parquet(path / "ranking.parquet")
         self.by_team = self.ranking.set_index("team")
 
@@ -241,5 +251,5 @@ class InternationalPredictor:
         date = pd.Timestamp(date or pd.Timestamp.today().normalize())
         _, level = tournament_weight(tournament)
         row = pd.DataFrame([_row(self._state(home), self._state(away), neutral, level, date)])
-        z = self.booster.predict(row[self.meta["features"]], raw_score=True)
+        z = np.mean([b.predict(row[self.meta["features"]], raw_score=True) for b in self.boosters], axis=0)
         return softmax(z / self.meta["temperature"])[0], row.iloc[0].to_dict()

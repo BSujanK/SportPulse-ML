@@ -83,7 +83,7 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 
 | Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |
 |---|---|---|---|
-| SportPulse International (LightGBM) | 0.1673 | 61.8% | 0.1616 |
+| SportPulse International (LightGBM) | 0.1672 | 62.1% | 0.1616 |
 | World Football Elo (standard, logistic) | 0.1695 | 61.3% | 0.1598 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
 
@@ -176,7 +176,7 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
   grid-searched on validation (80 Elo points, K × 1.25). A "neutral" match in a team's own country counts as home.
 * Signals per team: short and long form, competitive-only form, **performance versus Elo expectation**, **schedule
   strength** (opponents' Elo) and **rating momentum**, all leak-free in one chronological pass.
-* LightGBM multiclass (Optuna-tuned) + temperature calibration. Train 1994 → 2022, validate 2023 → mid-2024,
+* 5-seed bagged LightGBM multiclass (Optuna-tuned) + temperature calibration. Train 1994 → 2022, validate 2023 → mid-2024,
   test **mid-2024 → Nov 2026**, benchmarked against standard World Football Elo.
 
 ### Analyst layer (StatsBomb open data)
@@ -229,6 +229,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | National teams | Tuned home advantage and K-factor scale | better | 0.1680 → 0.1679 | adopted |
 | National teams | Performance-vs-expectation, schedule strength, momentum | better | → 0.1672 | adopted |
 | National teams | Optuna-tuned LightGBM | better | → 0.1673 | adopted (validation winner) |
+| National teams | 5-seed bagged ensemble | better | → 0.1672 | adopted |
+| National teams | Blend with Elo logistic | worse | flat | rejected |
 | Club matches | ClubElo cross-league ratings (verified pre-match) | flat | flat | rejected |
 | Club matches | 5-seed bagged ensemble | flat | flat | rejected |
 | Club matches | Log-linear blend with the Poisson-Dixon-Coles model | better | worse | rejected |
