@@ -42,7 +42,7 @@ st.markdown(f"""
 </div>""", unsafe_allow_html=True)
 
 tabs = st.tabs([":material/show_chart: xG race", ":material/sports_soccer: Shot map", ":material/hub: Pass networks",
-                ":material/compare_arrows: Team stats", ":material/model_training: xG model"])
+                ":material/compare_arrows: Team stats", ":material/star: VAEP ratings", ":material/model_training: xG model"])
 
 with tabs[0]:
     fig = go.Figure()
@@ -119,6 +119,48 @@ with tabs[3]:
         st.markdown(ui.tags([("task", H), ("lib", A)]), unsafe_allow_html=True)
 
 with tabs[4]:
+    vm = state.vaep_metrics()
+    if vm is None:
+        ui.note("VAEP ratings are not built yet: run <code>python -m sportpulse.train vaep</code>.")
+    else:
+        pm_ = state.analyst("vaep_player_matches")
+        r = pm_[pm_.match_id == mid].sort_values("vaep", ascending=False)
+        a_, b_ = st.columns([1.2, 1], gap="large")
+        with a_:
+            top = r.head(14)[::-1]
+            fig = go.Figure()
+            fig.add_trace(go.Bar(y=top.player, x=top.vaep_off, orientation="h", name="attacking",
+                                 marker_color=[ui.ORANGE if t == H else "#38bdf8" for t in top.team]))
+            fig.add_trace(go.Bar(y=top.player, x=top.vaep_def, orientation="h", name="defending",
+                                 marker_color=[ui.ORANGE_3 if t == H else "#7dd3fc" for t in top.team]))
+            fig.update_layout(barmode="relative", title="Match ratings: goal value added (VAEP)", height=460,
+                              legend=dict(orientation="h", y=-0.12))
+            ui.plot(fig)
+            st.markdown(ui.tags([("task", H), ("lib", A)]), unsafe_allow_html=True)
+        with b_:
+            ui.section(f"{comp}: best per 90", icon="trophy")
+            cp = state.analyst("vaep_players")
+            cp = cp[(cp.label == comp) & (cp.minutes >= 270)].sort_values("vaep_p90", ascending=False).head(15)
+            st.dataframe(cp[["player", "team", "matches", "minutes", "vaep_p90", "vaep"]], hide_index=True,
+                         width="stretch", height=460,
+                         column_config={"player": "Player", "team": "Team",
+                                        "matches": st.column_config.NumberColumn("M", format="%d"),
+                                        "minutes": st.column_config.NumberColumn("Min", format="%d"),
+                                        "vaep_p90": st.column_config.NumberColumn("VAEP / 90", format="%.3f"),
+                                        "vaep": st.column_config.NumberColumn("Total", format="%.2f")})
+        ui.section("Model check: trained before July 2022, scored on the 2022–24 tournaments", icon="clock")
+        rows_ = [{"Target": f"P({k} within 10 actions)", "Model": mdl, **v}
+                 for k, d_ in vm["evaluation"].items() for mdl, v in d_.items()]
+        st.dataframe(pd.DataFrame(rows_), hide_index=True, width="stretch",
+                     column_config={"log_loss": st.column_config.NumberColumn("Log-loss ↓", format="%.5f"),
+                                    "brier": st.column_config.NumberColumn("Brier ↓", format="%.6f"),
+                                    "auc": st.column_config.NumberColumn("AUC ↑", format="%.4f")})
+        ui.note("VAEP (Decroos et al., KDD 2019) values every pass, carry, shot and defensive action by how much it "
+                "changes the team's chance of scoring minus its chance of conceding within the next ten actions. "
+                f"Values come from out-of-fold models over {vm['actions'] / 1e6:.1f}M actions, and minutes are "
+                "estimated from the event stream.")
+
+with tabs[5]:
     x = am["xg"]
     cv = pd.DataFrame(x["non_penalty_cv"]).T
     tt = {k: v for k, v in x.get("temporal_recent_test", {}).items() if isinstance(v, dict)}

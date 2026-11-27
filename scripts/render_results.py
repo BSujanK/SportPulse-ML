@@ -29,11 +29,14 @@ lines += [
     f"**Over/Under 2.5** log-loss: model {ou['logloss_model']:.4f} · market {ou['logloss_market']:.4f} · "
     f"base rate {ou['logloss_base']:.4f}.",
     "",
-    "| Player model | Metric | SportPulse | Best baseline |",
+    "EA FIFA models (FIFA 15–22 snapshot). The value model reproduces EA's own listed price from EA's "
+    "own attributes, so its R² measures fidelity to EA, not to the transfer market (see Transfermarkt below).",
+    "",
+    "| EA FIFA model | Metric | SportPulse | Best baseline |",
     "|---|---|---|---|",
-    f"| Market value (unseen players, FIFA 22) | R² log € | **{v['model']['r2']:.4f}** | "
+    f"| EA value (unseen players, FIFA 22) | R² log € | **{v['model']['r2']:.4f}** | "
     f"{v['baseline_linear_log']['r2']:.4f} (linear) |",
-    f"| Market value | median abs. % error | **{v['model']['median_ape'] * 100:.1f}%** | "
+    f"| EA value | median abs. % error | **{v['model']['median_ape'] * 100:.1f}%** | "
     f"{v['baseline_linear_log']['median_ape'] * 100:.1f}% |",
     f"| Development (21→22) | MAE rating pts | **{dv['model']['mae']:.3f}** | "
     f"{dv['baseline_potential_pull']['mae']:.3f} (potential-pull) · {dv['baseline_persistence']['mae']:.3f} (persistence) |",
@@ -72,6 +75,33 @@ for name, r in x["non_penalty_cv"].items():
     b = "**" if name.startswith("SportPulse") else ""
     lines.append(f"| {b}{name}{b} | {r['log_loss']:.4f} | {r['auc']:.4f} | "
                  + (f"{t['log_loss']:.4f} | {t['ece']:.4f} |" if t else "— | — |"))
+mvp = ROOT / "artifacts/market_value/metrics.json"
+if mvp.exists():
+    mv = json.loads(mvp.read_text())
+    md = mv["data"]
+    lines += ["", f"### Transfermarkt valuation models ({md['valuations']:,} valuations of {md['players']:,} players; "
+              "test: 2025-07 → 2026-07)", "",
+              "| Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |", "|---|---|---|---|---|---|"]
+    for task, lbl in (("fees", "Transfer fee"), ("forecast", "Next valuation"), ("fair_value", "Fair value, no TM input")):
+        for r in mv[task]["leaderboard"]:
+            b = "**" if r["model"].startswith("SportPulse") else ""
+            lines.append(f"| {lbl} | {b}{r['model']}{b} | {b}{r['median_ape'] * 100:.1f}%{b} | {r['mae_log']:.3f} | "
+                         f"{r['r2_log']:.3f} | {r['within_25pct'] * 100:.0f}% |")
+    bm = mv["fees"]["big_moves"]
+    lines += ["", f"Direction of the next valuation change (moves over 5%): {mv['forecast']['direction_accuracy'] * 100:.1f}% "
+              f"of {mv['forecast']['direction_n']:,}. Fees of €20M or more ({bm['n']} moves): median error "
+              f"{bm['SportPulse']['median_ape'] * 100:.0f}% vs {bm['Transfermarkt value']['median_ape'] * 100:.0f}% "
+              "for the Transfermarkt value."]
+vp = ROOT / "artifacts/analyst/vaep_metrics.json"
+if vp.exists():
+    vm = json.loads(vp.read_text())
+    lines += ["", f"### VAEP action values ({vm['actions'] / 1e6:.1f}M actions; trained before {vm['trained_before']}, "
+              f"tested on {vm['test_actions']:,} actions from the 2022–24 tournaments)", "",
+              "| Target | Model | Log-loss ↓ | Brier ↓ | AUC ↑ |", "|---|---|---|---|---|"]
+    for k, rows in vm["evaluation"].items():
+        for mdl, r in rows.items():
+            b = "**" if mdl.startswith("SportPulse") else ""
+            lines.append(f"| P({k}) | {b}{mdl}{b} | {r['log_loss']:.5f} | {r['brier']:.6f} | {r['auc']:.4f} |")
 block = "\n".join(lines)
 readme = (ROOT / "README.md").read_text()
 readme = re.sub(r"<!-- RESULTS:START -->.*<!-- RESULTS:END -->",

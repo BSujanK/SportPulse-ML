@@ -108,3 +108,9 @@ def market_value(name: str) -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def market_value_metrics() -> dict:
     return json.loads((MV / "metrics.json").read_text())
+
+
+@st.cache_data(show_spinner=False)
+def vaep_metrics() -> dict | None:
+    p = AN / "vaep_metrics.json"
+    return json.loads(p.read_text()) if p.exists() else None

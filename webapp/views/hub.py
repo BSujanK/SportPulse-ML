@@ -54,12 +54,18 @@ ui.kpi_row([
 
 v, d, a = pm["value"]["model"], pm["development"]["model"], pm["archetypes"]
 am = state.analyst_metrics()
+vm = state.vaep_metrics()
 axg = am["xg"]["non_penalty_cv"]
 V = "webapp/views/"
 models = [
     dict(title="expected-goals-freeze-frame", icon="crosshair", page=V + "match_analysis.py", link="Match Analysis",
          desc="Shot-level xG with freeze-frame geometry; beats StatsBomb's commercial xG on unseen 2022–24 tournaments.",
          meta=["Binary classification", f"log-loss {axg['SportPulse xG (LightGBM)']['log_loss']:.4f}"]),
+    *([dict(title="vaep-action-values", icon="activity", page=V + "match_analysis.py", link="Match Analysis",
+            desc="Values every pass, carry, shot and tackle by the change in scoring minus conceding chances.",
+            meta=["Binary classification",
+                  f"AUC {vm['evaluation']['scores']['SportPulse VAEP (LightGBM)']['auc']:.3f} vs xT "
+                  f"{vm['evaluation']['scores']['xT (calibrated)']['auc']:.3f}"])] if vm else []),
     dict(title="premier-league-player-forecaster", icon="target", page=V + "fpl.py", link="PL Player Forecaster",
          desc="Next-gameweek points and involvement probabilities for every Premier League player.",
          meta=["Regression", f"best XI {flb['SportPulse LightGBM (production)']['top_xi']:.2f} vs xP "

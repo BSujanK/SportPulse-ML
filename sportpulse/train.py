@@ -12,7 +12,7 @@ import logging
 
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description="Train SportPulse models on real data")
-    ap.add_argument("target", nargs="?", default="all", choices=["all", "matches", "players", "fpl", "international", "analyst", "value"])
+    ap.add_argument("target", nargs="?", default="all", choices=["all", "matches", "players", "fpl", "international", "analyst", "value", "vaep"])
     ap.add_argument("--trials", type=int, default=0,
                     help="Optuna trials for the fundamentals booster (0 = use defaults)")
     ap.add_argument("--refresh", action="store_true",
@@ -41,6 +41,12 @@ def main(argv=None) -> None:
         a = run_analyst(refresh=args.refresh)
         for name, r in a["xg"]["non_penalty_cv"].items():
             print(f"{name:32s} LL {r['log_loss']:.4f}  Brier {r['brier']:.4f}  AUC {r['auc']:.4f}")
+    if args.target in ("all", "vaep"):
+        from sportpulse.pipelines.vaep_pipeline import run as run_vaep
+        r = run_vaep()
+        for name, rows in r["evaluation"].items():
+            for model, mt in rows.items():
+                print(f"P({name:8s}) {model:28s} LL {mt['log_loss']:.5f}  Brier {mt['brier']:.5f}  AUC {mt['auc']:.4f}")
     if args.target in ("all", "value"):
         from sportpulse.pipelines.market_value_pipeline import run as run_value
         v = run_value()
