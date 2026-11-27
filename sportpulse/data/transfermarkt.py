@@ -256,6 +256,23 @@ FD_TO_TM = {"E0": "GB1", "SP1": "ES1", "I1": "IT1", "F1": "FR1", "T1": "TR1", "D
             "JAP": "JAP1", "MEX": "MEX1"}
 
 
+def club_league(club_ids, dates) -> np.ndarray:
+    """Each club's domestic league in the season of each date, from that season's league games (point in time).
+    Seasons after the Transfermarkt snapshot fall back to the snapshot's league; uncovered clubs get NaN."""
+    g = table("games")
+    g = g[g.competition_type.eq("domestic_league")]
+    rows = pd.concat([pd.DataFrame({"club": g.home_club_id, "season": _season(g.date), "lg": g.competition_id}),
+                      pd.DataFrame({"club": g.away_club_id, "season": _season(g.date), "lg": g.competition_id})])
+    lookup = rows.groupby(["club", "season"]).lg.agg(lambda s: s.mode().iloc[0])
+    d = pd.to_datetime(pd.Series(dates)).reset_index(drop=True)
+    key = pd.MultiIndex.from_arrays([pd.Series(club_ids).reset_index(drop=True), _season(d)])
+    out = lookup.reindex(key).to_numpy(object)
+    snapshot = table("clubs").set_index("club_id")["domestic_competition_id"]
+    late = (d >= g.date.max() - pd.Timedelta(days=30)).to_numpy()
+    fallback = pd.Series(club_ids).reset_index(drop=True).map(snapshot).to_numpy(object)
+    return np.where(pd.isna(out) & late, fallback, out)
+
+
 def club_id_map(matches: pd.DataFrame) -> dict:
     """football-data (division|team) -> Transfermarkt club_id, by joining fixtures on date and score
     within each league and taking each name's majority club (at least 5 joined fixtures, 80% agreement)."""

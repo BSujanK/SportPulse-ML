@@ -137,3 +137,22 @@ def test_progressive_pass_rule():
     from sportpulse.analysis.analyst import progressive
     df = pd.DataFrame({"x": [60, 60, 20], "y": [40, 40, 40], "end_x": [90, 62, 60], "end_y": [40, 40, 40]})
     assert progressive(df).tolist() == [True, False, False]
+
+
+def test_live_row_matches_training_row():
+    """Train/serve parity: the row built live from saved team states equals the training row for the same fixture."""
+    from sportpulse.features.engine import pre_match_row
+    m = _toy_matches(80)
+    nxt = m.iloc[[-1]].copy()
+    nxt["date"] = m.date.max() + pd.Timedelta(days=4)
+    nxt["home_id"], nxt["away_id"] = "England|T0", "England|T1"
+    f_all, _, _ = build_features(pd.concat([m, nxt], ignore_index=True))
+    _, teams, leagues = build_features(m)
+    live = pre_match_row(teams["England|T0"].snapshot(), teams["England|T1"].snapshot(),
+                         leagues["E0"].snapshot(), nxt.date.iloc[0])
+    train = f_all.iloc[-1]
+    shared = [k for k in live if k in train.index and not k.startswith(("mkt_", "ah_")) and k != "d_mkt_str"]
+    assert len(shared) > 40
+    for k in shared:
+        a, b = float(live[k]), float(train[k])
+        assert (np.isnan(a) and np.isnan(b)) or a == pytest.approx(b, rel=1e-9, abs=1e-9), k

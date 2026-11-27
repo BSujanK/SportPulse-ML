@@ -228,12 +228,8 @@
   "t_final": 1.0168367965294465,
   "extra_fund_features": [
     "cv18_diff",
-    "cv11_diff",
-    "mgr_ten_h",
-    "mgr_ten_a",
-    "mgr_new_h",
-    "mgr_new_a"
+    "cv11_diff"
   ],
-  "plus_iters": 459,
-  "t_plus": 1.0326351058862944
+  "plus_iters": 421,
+  "t_plus": 1.0342313073156213
 }

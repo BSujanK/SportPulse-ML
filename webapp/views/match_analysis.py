@@ -170,7 +170,7 @@ with tabs[5]:
 LightGBM on **{x['non_penalty_shots']:,} non-penalty shots** from **{x['matches']:,} matches** (StatsBomb open data).
 Monotone constraints make xG non-increasing in distance and non-decreasing in goal-mouth angle. Features cover
 shot geometry, body part and technique, phase of play, the assisting pass, a men's/women's flag and **freeze-frame geometry**: defenders
-and teammates in the shooting cone, the goalkeeper's position, nearest-defender distance and pressure count.
+and teammates in the shooting cone, the share of the goal mouth visible past them, blockers in the shot lane, distance-weighted pressure, and the goalkeeper's position and offset from the ball-to-goal line.
 Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
 """)
     ui.section("Out-of-fold, grouped by match", icon="layers")
@@ -181,7 +181,7 @@ Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
                     "goals": st.column_config.NumberColumn("Goals", format="%.0f"),
                     "n": st.column_config.NumberColumn("Shots", format="%d")})
     if tt:
-        ui.section("Temporal test: trained before July 2022, scored on 2022–24 men's tournaments", icon="clock")
+        ui.section("Temporal test: trained before July 2022, scored on the 2022–24 hold-out", icon="clock")
         st.dataframe(pd.DataFrame(tt).T[["log_loss", "brier", "auc", "ece", "xg_sum", "goals", "n"]],
                      width="stretch",
                      column_config={c: st.column_config.NumberColumn(lbl, format="%.4f") for c, lbl in

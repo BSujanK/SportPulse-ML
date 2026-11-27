@@ -20,7 +20,7 @@ lb = {r["model"]: r for r in mm["leaderboard"]}
 prod = lb["SportPulse Market-Residual (production)"]
 mkt = lb["Bookmaker market (Shin)"]
 fund = lb["SportPulse Fundamentals (no odds)"]
-updated = dt.datetime.fromtimestamp((config.MATCH_ARTIFACTS / "metrics.json").stat().st_mtime)
+updated = dt.datetime.fromisoformat(str(mm["production"]["trained_through"])[:10])   # data date, not file time
 upd = f"Updated {updated:%b %d, %Y}"
 
 st.markdown(f"""
@@ -86,7 +86,7 @@ models = [
          desc="Fee for a real transfer from form, minutes, both clubs and the valuation history.",
          meta=["Regression", f"error {fee_sp['median_ape'] * 100:.0f}% vs TM {fee_tm['median_ape'] * 100:.0f}%"]),
     dict(title="market-value-forecast", icon="trending", page=V + "market_value.py", link="Market Value",
-         desc="Predicts each player's next Transfermarkt valuation from everything known today.",
+         desc="Estimates each player's current Transfermarkt valuation from everything known so far.",
          meta=["Regression", f"error {mvr['forecast']['SportPulse forecast (LightGBM)']['median_ape'] * 100:.1f}% "
                              f"vs {mvr['forecast']['Persistence (last Transfermarkt value)']['median_ape'] * 100:.1f}%"]),
     dict(title="performance-fair-value", icon="search", page=V + "market_value.py", link="Market Value",

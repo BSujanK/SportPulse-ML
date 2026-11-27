@@ -3,7 +3,7 @@
 // Layout audit: overlaps and tight vertical gaps between visual blocks, per page and viewport.
 const { chromium } = require('playwright');
 const PAGES = ["", "match-forecaster", "national-teams", "leaderboard", "opponent-report", "match-analysis",
-               "leagues", "pl-player-forecaster", "player-scout", "archetypes", "datasets"];
+               "leagues", "pl-player-forecaster", "market-value", "player-scout", "archetypes", "datasets"];
 const SEL = '.hf-kpi, [class*="st-key-spcard"], .hf-note, .hf-hero, .hf-repo, .hf-tags, .hf-section, .hf-step, ' +
             '[data-testid="stPlotlyChart"], [data-testid="stDataFrame"], [data-testid="stTabs"] > div:first-child, ' +
             'div[data-testid="stVerticalBlockBorderWrapper"]:not([class*="st-key-spcard"]) , [data-testid="stSelectbox"], .hf-bullets, .hf-kv';

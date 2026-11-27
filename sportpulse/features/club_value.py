@@ -63,7 +63,7 @@ class ClubValueLookup:
         return {"cv18_diff": h.cv18 - a.cv18, "cv11_diff": h.cv11 - a.cv11}
 
 
-# ── Manager tenure ───────────────────────────────────────────────────────────────────────────────────
+# ── Manager tenure (experiment only: not used in production, because live fixtures have no manager data) ───────────────────────────────────────────────────────────────────────────────────
 MGR_COLS = ["mgr_ten_h", "mgr_ten_a", "mgr_new_h", "mgr_new_a"]
 NEW_MANAGER_GAMES = 6
 

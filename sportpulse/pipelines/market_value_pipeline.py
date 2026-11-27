@@ -68,8 +68,9 @@ def fee_frame(A: T.AsOf) -> pd.DataFrame:
     end = T.table("player_valuations").date.max() + pd.Timedelta(days=30)
     t = t[(t.transfer_fee > 0) & (t.transfer_date >= START) & (t.transfer_date <= end)]
     t = t.drop_duplicates(["player_id", "transfer_date"]).reset_index(drop=True)
-    clubs = T.table("clubs").set_index("club_id")["domestic_competition_id"]
-    from_lg, to_lg = t.from_club_id.map(clubs), t.to_club_id.map(clubs)
+    # the selling club's league in the season before the move, the buying club's in the season after it
+    from_lg = pd.Series(T.club_league(t.from_club_id, t.transfer_date - pd.Timedelta(days=60)), index=t.index)
+    to_lg = pd.Series(T.club_league(t.to_club_id, t.transfer_date + pd.Timedelta(days=60)), index=t.index)
     F = A.build(t.player_id.to_numpy(), t.transfer_date, club=t.from_club_id.to_numpy(np.int64), comp=from_lg)
     day = T._day(t.transfer_date)
     to = A.club_strength(t.to_club_id.to_numpy(np.int64), day, "to_").reset_index(drop=True)
@@ -114,7 +115,7 @@ def run() -> dict:
         "direction_n": int((m & chg).sum()), "iters": fc.iters, "importance": dict(list(fc.importance().items())[:15])}
     log.info("forecast %s", res["forecast"]["leaderboard"][0])
 
-    # ── 2. Fair value, no Transfermarkt input for the player ───────────────────────────
+    # ── 2. Fair value, without the player's valuation history ───────────────────────────
     perf = [c for c in num if c not in LAGS] + HISTORY
     fv = ValueBooster(perf, CAT_COLS).fit(V, V.y, tr, va)
     p_fv = fv.predict(V)

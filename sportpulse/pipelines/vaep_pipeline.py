@@ -3,7 +3,7 @@
     python -m sportpulse.train vaep
 
 Evaluation: P(scores) / P(concedes) models trained on matches before July 2022 and tested on the
-2022-24 men's tournaments, against calibrated xT and a location-only model. Production action
+2022-24 hold-out competitions, against calibrated xT and a location-only model. Production action
 values are out-of-fold (2 folds by match), so no action is valued by a model that saw it.
 """
 from __future__ import annotations

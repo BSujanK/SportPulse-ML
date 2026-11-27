@@ -4,7 +4,8 @@ Three LightGBM models, each with a chronological train / validation / test split
 
 * forecast   next Transfermarkt valuation, given everything known on that date
              (trained on the change in log value; baseline = persistence)
-* fair_value value from performance, age, club and league only, with no Transfermarkt input
+* fair_value value from performance, age, club and league, without the player's own valuation history
+             (club and league value levels still come from Transfermarkt valuations)
              (for scouting players without a reliable market value)
 * fee        actual transfer fee paid (baseline = the Transfermarkt value before the move)
 """

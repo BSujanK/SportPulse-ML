@@ -25,7 +25,7 @@ v_sp = row(fv, "SportPulse fair value (LightGBM)")
 ui.kpi_row([
     ui.kpi("Transfer-fee error", f"{f_sp['median_ape'] * 100:.0f}", "%",
            f"Transfermarkt value {f_tm['median_ape'] * 100:.0f}%", "good"),
-    ui.kpi("Next-valuation error", f"{n_sp['median_ape'] * 100:.1f}", "%",
+    ui.kpi("Valuation estimate error", f"{n_sp['median_ape'] * 100:.1f}", "%",
            f"persistence {n_pe['median_ape'] * 100:.1f}%", "good"),
     ui.kpi("Direction of next change", f"{fc['direction_accuracy'] * 100:.0f}", "%",
            f"{fc['direction_n']:,} moves over 5%"),
@@ -51,7 +51,7 @@ with t_player:
             gap_fv = p.fair_value / p.tm_value - 1
             ui.kpi_row([
                 ui.kpi("Transfermarkt value", ui.fmt_eur(p.tm_value), "", f"peak {ui.fmt_eur(p.peak_value)}"),
-                ui.kpi("Next update forecast", ui.fmt_eur(p.forecast_value), "", f"{gap_fc * 100:+.0f}%",
+                ui.kpi("Model estimate today", ui.fmt_eur(p.forecast_value), "", f"{gap_fc * 100:+.0f}% vs last TM value",
                        "good" if gap_fc > 0.05 else "bad" if gap_fc < -0.05 else ""),
                 ui.kpi("Performance fair value", ui.fmt_eur(p.fair_value), "", f"{gap_fv * 100:+.0f}% vs TM",
                        "good" if gap_fv > 0.15 else "bad" if gap_fv < -0.15 else ""),
@@ -64,10 +64,10 @@ with t_player:
                                      line=dict(color=ui.ORANGE, width=3, shape="hv"),
                                      customdata=h.current_club_name,
                                      hovertemplate="%{x|%b %Y}<br>€%{y:.1f}M<br>%{customdata}<extra></extra>"))
-            last = h.date.max()
-            nxt = last + pd.Timedelta(days=180)
-            fig.add_trace(go.Scatter(x=[last, nxt], y=[h.market_value_in_eur.iloc[-1] / 1e6, p.forecast_value / 1e6],
-                                     mode="lines+markers", name="Forecast", line=dict(color=ui.ORANGE_3, dash="dash")))
+            last, now = h.date.max(), pd.Timestamp(mm["asof"])
+            fig.add_trace(go.Scatter(x=[last, now], y=[h.market_value_in_eur.iloc[-1] / 1e6, p.forecast_value / 1e6],
+                                     mode="lines+markers", name=f"Model estimate ({now:%b %Y})",
+                                     line=dict(color=ui.ORANGE_3, dash="dash")))
         fig.update_layout(title="Market value history (€M)", height=330, legend=dict(orientation="h", y=-0.2))
         ui.plot(fig)
     with right:
@@ -80,7 +80,8 @@ with t_player:
                             pd.Timestamp(p.contract_until).strftime("%b %Y")),
                            ("Foot · height", f"{p.foot or '—'} · {'—' if pd.isna(p.height) else f'{p.height:.0f} cm'}")]),
                     unsafe_allow_html=True)
-        ui.note("<b>Next update forecast</b> predicts Transfermarkt's next valuation from everything known today. "
+        ui.note("<b>Model estimate today</b> is what Transfermarkt's valuation would be on the snapshot date, from "
+                "everything known by then; it is evaluated on Transfermarkt's later updates, knowing their dates. "
                 "<b>Performance fair value</b> ignores this player's Transfermarkt history and prices him from "
                 "minutes, output, competition level, club and age alone, so a large gap flags a player the market "
                 "may be mispricing.")
@@ -108,7 +109,7 @@ with t_under:
                                 "tm_value": st.column_config.NumberColumn("Transfermarkt €", format="compact"),
                                 "fair_value": st.column_config.NumberColumn("Fair value €", format="compact"),
                                 "gap": st.column_config.NumberColumn("Fair vs TM", format="%+.0f%%"),
-                                "forecast_value": st.column_config.NumberColumn("Next update €", format="compact"),
+                                "forecast_value": st.column_config.NumberColumn("Model estimate €", format="compact"),
                                 "trend": st.column_config.NumberColumn("Expected move", format="%+.0f%%"),
                                 "minutes_365": st.column_config.NumberColumn("Min (365d)", format="%d"),
                                 "goals_365": st.column_config.NumberColumn("G", format="%d"),
@@ -150,7 +151,7 @@ with t_fees:
 
 with t_card:
     for title, board, note in [
-        ("Next Transfermarkt valuation", fc, "test: 2025-07 → 2026-06 valuations"),
+        ("Transfermarkt valuation estimate (scored on later updates)", fc, "test: 2025-07 → 2026-06 valuations"),
         ("Fair value, without the player's valuation history", fv, "test: 2025-07 → 2026-06 valuations"),
         ("Transfer fees", fe, f"test: {f_sp['n']:,} paid transfers, 2025-07 → 2026-07")]:
         ui.section(title, count=f"{board['leaderboard'][0]['n']:,}", icon="scale")

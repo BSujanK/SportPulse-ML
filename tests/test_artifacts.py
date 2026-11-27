@@ -100,3 +100,28 @@ def test_analyst_artifacts():
     assert int(wc.goal.sum()) == 7                           # matches the real tournament record
     prof = pd.read_parquet(an / "team_profiles.parquet")
     assert prof.filter(like="pct_").stack().between(0, 1.01).all()
+
+
+MV = config.ARTIFACTS_DIR / "market_value"
+AN = config.ARTIFACTS_DIR / "analyst"
+
+
+@pytest.mark.skipif(not (MV / "metrics.json").exists(), reason="Transfermarkt models not trained")
+def test_market_value_models_beat_their_baselines():
+    m = json.loads((MV / "metrics.json").read_text())
+    for task, ours, ref in (("fees", "SportPulse fee model (LightGBM)", "Transfermarkt value"),
+                            ("forecast", "SportPulse forecast (LightGBM)", "Persistence (last Transfermarkt value)"),
+                            ("fair_value", "SportPulse fair value (LightGBM)", "League × position × age median")):
+        lb = {r["model"]: r for r in m[task]["leaderboard"]}
+        assert lb[ours]["mae_log"] < lb[ref]["mae_log"], task
+    cur = pd.read_parquet(MV / "current_players.parquet")
+    assert len(cur) > 1000 and (cur.tm_value > 0).all() and (cur.fair_value > 0).all()
+
+
+@pytest.mark.skipif(not (AN / "vaep_metrics.json").exists(), reason="VAEP not trained")
+def test_vaep_beats_expected_threat():
+    m = json.loads((AN / "vaep_metrics.json").read_text())["evaluation"]
+    for target in ("scores", "concedes"):
+        assert m[target]["SportPulse VAEP (LightGBM)"]["auc"] > m[target]["xT (calibrated)"]["auc"], target
+    p = pd.read_parquet(AN / "vaep_players.parquet")
+    assert {"player", "team", "minutes", "vaep_p90"} <= set(p.columns) and len(p) > 1000

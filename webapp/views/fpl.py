@@ -78,22 +78,43 @@ with t_xi:
     budget = st.slider("Squad budget for the XI (£m)", 60.0, 120.0, 85.0, 0.5)
     pool = nxt[nxt.availability > 0.5].sort_values("xpts", ascending=False)
     need = {"GK": (1, 1), "DEF": (3, 5), "MID": (2, 5), "FWD": (1, 3)}
-    # Greedy with formation + budget feasibility (cheapest-fill reserve).
-    cheapest = pool.groupby("position").price.min().to_dict()
-    xi, spend, cnt = [], 0.0, {k: 0 for k in need}
+    # Greedy with formation + budget feasibility. A pick is accepted only if the cheapest distinct players
+    # still available can fill every remaining slot within budget: the formation minimums first, then the
+    # other open slots. One row per player (double gameweeks count once).
+    pool = pool.drop_duplicates("player_code")
+
+    def reserve_after(cnt, taken, slots_left):
+        rest = pool[~pool.player_code.isin(taken)].sort_values("price")
+        mins = {p: max(lo - cnt[p], 0) for p, (lo, _) in need.items()}
+        if sum(mins.values()) > slots_left:
+            return None
+        cost, used, c = 0.0, set(), dict(cnt)
+        for p, k in mins.items():
+            cand = rest[rest.position == p].head(k)
+            if len(cand) < k:
+                return None
+            cost += cand.price.sum(); used |= set(cand.player_code); c[p] += k
+        free = slots_left - sum(mins.values())
+        for q in rest[~rest.player_code.isin(used)].itertuples():   # cheapest first, respecting position caps
+            if free == 0:
+                break
+            if q.position in need and c[q.position] < need[q.position][1]:
+                cost += q.price; c[q.position] += 1; free -= 1
+        return None if free else cost
+
+    xi, spend, cnt, taken = [], 0.0, {k: 0 for k in need}, set()
     for r in pool.itertuples():
         if r.position not in need or cnt[r.position] >= need[r.position][1] or len(xi) == 11:
             continue
-        if r.name in {x.name for x in xi}:
-            continue
         cnt[r.position] += 1
-        mins_left = sum(max(lo - cnt[p], 0) for p, (lo, _) in need.items())
-        reserve = sum(max(lo - cnt[p], 0) * cheapest.get(p, 4.0) for p, (lo, _) in need.items())
-        if spend + r.price + reserve > budget or 11 - len(xi) - 1 < mins_left:
+        res = reserve_after(cnt, taken | {r.player_code}, 11 - len(xi) - 1)
+        if res is None or spend + r.price + res > budget:
             cnt[r.position] -= 1
             continue
-        xi.append(r)
+        xi.append(r); taken.add(r.player_code)
         spend += r.price
+    if len(xi) < 11:
+        st.warning(f"Only {len(xi)} players fit a £{budget:.1f}m budget with these formation limits.")
     xi_df = pd.DataFrame(xi)
     if len(xi_df):
         order = {"GK": 0, "DEF": 1, "MID": 2, "FWD": 3}
@@ -158,6 +179,8 @@ player **plays 60+ minutes**, **scores** and **assists**. It is trained on **{d[
 #### What the model sees
 Only information available before the gameweek deadline:
 
+* **FPL's own expected points** (`ep_next`): FPL's pre-deadline estimate, which carries injury and team news
+
 * **Recent form**: the last 3 and 6 fixtures plus a longer weighted average, covering minutes, starts, points, goals,
   assists, xG, xA, bonus and the ICT index (influence, creativity, threat), clean sheets, saves and cards
 * **Rates**: per-90 output over the last 10 fixtures, season-to-date averages and days since the last match
@@ -172,7 +195,7 @@ Only information available before the gameweek deadline:
 * **Serving**: refit on every season, then projected for gameweek {d['next_gameweek']}
 
 #### Availability
-Projections are scaled by FPL's published chance-of-playing flag. Players flagged as injured, suspended or
-unavailable without a percentage are projected at zero.
+FPL's expected points already price in availability, so projections are not scaled again. The chance-of-playing
+flag is shown for reference, and the best XI only picks players with more than a 50% chance of playing.
 """)
 

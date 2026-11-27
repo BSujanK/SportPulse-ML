@@ -88,7 +88,7 @@ with tabs[0]:
         ui.section("Game-plan cues", icon="target")
         cues = []
         if pct["ppda"] >= .7:
-            cues.append(("info", f"Aggressive press (PPDA {P.ppda:.1f}, pressures at {P.press_height:.0f} m). Plan a "
+            cues.append(("info", f"Aggressive press (PPDA {P.ppda:.1f}, pressures at {P.press_height:.0f} yd). Plan a "
                                  "secure first pass and a long outlet. Their high regains average "
                                  f"{P.high_regains:.1f} per match."))
         elif pct["ppda"] <= .3:
@@ -105,7 +105,7 @@ with tabs[0]:
         if pct["npxg_against"] <= .3:
             cues.append(("good", f"Defensively exposed: {P.npxg_against:.2f} npxG conceded per match."))
         if pct["def_line_height"] >= .75:
-            cues.append(("info", f"High defensive line (actions at {P.def_line_height:.0f} m avg.). Runs in behind "
+            cues.append(("info", f"High defensive line (actions at {P.def_line_height:.0f} yd avg.). Runs in behind "
                                  "and early balls over the top are the obvious lever."))
         if not cues:
             cues.append(("info", "Balanced profile with no extreme tendency. Match-specific line-ups and form will dominate."))

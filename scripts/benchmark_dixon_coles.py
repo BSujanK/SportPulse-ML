@@ -99,9 +99,9 @@ def rolling_predictions(m: pd.DataFrame, start, end, xi) -> np.ndarray:
             w = np.exp(-xi * (t0 - hist.date).dt.days.to_numpy(float))
             mu, h, att, dfn, rho = fit_dc(teams.get_indexer(hist.home), teams.get_indexer(hist.away),
                                           hist.hg.to_numpy(float), hist.ag.to_numpy(float), w, n)
-            # Unseen (promoted) teams: the average promoted side is weaker than average,
-            # so use the mean rating of the bottom quarter of the league.
-            q = np.argsort(att - dfn)[: max(n // 4, 1)]
+            # Unseen (promoted) teams: the average promoted side is weaker than average, so use the mean
+            # rating of the bottom quarter. Strength is att + dfn: dfn lowers the opponent's scoring rate.
+            q = np.argsort(att + dfn)[: max(n // 4, 1)]
             a_new, d_new = att[q].mean(), dfn[q].mean()
             hi, ai = teams.get_indexer(tgt.home), teams.get_indexer(tgt.away)
             ah = np.where(hi >= 0, att[hi], a_new); dh = np.where(hi >= 0, dfn[hi], d_new)

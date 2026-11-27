@@ -125,7 +125,7 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
     }, "penalty_rate": pen_rate, "iters": n_iter,
         "shots": int(len(shots)), "non_penalty_shots": int(np_mask.sum()), "matches": int(shots.match_id.nunique())}
 
-    # Temporal generalisation: train on matches before July 2022, test on the 2022-2024 men's tournaments
+    # Temporal generalisation: train on matches before July 2022, test on the 2022-2024 hold-out competitions (four tournaments, three league seasons)
     recent = shots.loc[np_mask, "label"].isin(recent_labels).to_numpy()
     older = (shots.loc[np_mask, "date"] < "2022-07-01").to_numpy() if "date" in shots else ~recent
     if recent.any() and older.any():
