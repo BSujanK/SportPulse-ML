@@ -96,6 +96,47 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 | Distance + angle logistic | 0.2952 | 0.7368 | — | — |
 <!-- RESULTS:END -->
 
+## Comparison with published work
+
+Numbers from different papers are measured on different leagues, seasons and match counts, and RPS moves with
+the league mix and the draw rate. So the strongest evidence below is **same data, same rows, paired test**:
+the published methods are re-implemented and scored on the SportPulse test window.
+
+**Club 1X2, same 16,843 test matches** (`python scripts/benchmark_dixon_coles.py`; Dixon-Coles refit monthly per
+league on the previous three seasons, time decay ξ chosen on the 2023-24 validation season):
+
+| Model | Source | RPS ↓ | Log-loss ↓ | Paired ΔRPS vs Dixon-Coles (z) |
+|---|---|---|---|---|
+| **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0082 (z = −15.4) |
+| Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0081 (z = −16.0) |
+| SportPulse Fundamentals, no odds | this repo | 0.2079 | 1.0155 | −0.0038 (z = −8.3) |
+| Pi-ratings + Elo logistic | Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
+| Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2117 | 1.0317 | — |
+
+(The pi-rating row comes from the full 17,054-match leaderboard above.) Without odds, SportPulse beats the classic
+Dixon-Coles model by a wide, significant margin. With odds, it edges the closing market (paired ΔRPS −0.00011,
+z = −1.3). That is a consistent edge, but not a statistically significant one on 17k matches. Read it as
+"matches the market"; beating a liquid market significantly with public data alone would be unusual.
+
+**Published RPS figures on other data, for orientation only.** On the
+[2017 Soccer Prediction Challenge](https://link.springer.com/article/10.1007/s10994-018-5763-8) test set, the
+winning feature-engineered gradient-boosted trees of
+[Hubáček, Šourek & Železný (2019)](https://mlanthology.org/mlj/2019/hubacek2019mlj-learning) scored RPS 0.2063.
+The pi-ratings + CatBoost result summarised in [Bunker, Yeung & Fujii (2024)](https://arxiv.org/abs/2403.07669)
+scored 0.1925 on that challenge's data. SportPulse uses the same family (rating features + gradient boosting)
+on a far larger, odds-aware test set. These numbers are not head-to-head.
+
+**Expected goals.** [Bajons & Harringer, *One xG model to rule them all?*](https://static.hudl.com/craft/performance-insights-research-stage/2025/One-xG-model-to-rule-them-all_-Robert-Bajons-Tobias-Harringer.pdf)
+benchmark Hudl-StatsBomb's commercial xG, the industry reference model. SportPulse compares against the same
+StatsBomb xG on the same shots: on the unseen 2022-24 tournaments it has log-loss 0.2514 vs 0.2563 and AUC 0.813 vs
+0.803, and under 5-fold CV 0.2606 vs 0.2660.
+
+**National teams.** The reference is the [World Football Elo](https://www.eloratings.net/about) rating, re-implemented
+with its published K-factors. SportPulse has competitive-match RPS 0.1672 vs 0.1695 (accuracy 62.1% vs 61.3%).
+
+**Fantasy points.** The reference is the official FPL expected-points (xP) forecast: MAE 0.998 vs 1.092, and the
+best-XI picks score 4.66 vs 3.41 points per player.
+
 ## What changed from v1
 
 The original app trained on partly synthetic data and had target leakage. v2 is a ground-up rebuild:
@@ -240,6 +281,9 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
 | PL players | Optuna-tuned heads | better | mixed | rejected |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
+| Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
+| National teams | Recency-weighted training | worse | — | rejected |
+| xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
 
 The consistent pattern: forecasts priced by liquid betting markets (1X2, over/under) and FPL points (driven by
 unannounced line-ups) are at the ceiling of public data. Shot-level xG and national-team ratings still had headroom.

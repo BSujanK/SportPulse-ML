@@ -40,6 +40,19 @@ PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=10, min_data_in
               monotone_constraints=[MONO.get(f, 0) for f in FEATURES], monotone_constraints_method="advanced")
 
 
+# Recency weighting: tested at 15 / 8 / 5 / 3-year half-lives; none held up in the full pipeline, so it is off.
+HALF_LIFE_YEARS = None
+
+
+def recency_weights(shots: pd.DataFrame, ref=None) -> np.ndarray:
+    if HALF_LIFE_YEARS is None or "date" not in shots:
+        return np.ones(len(shots))
+    dates = pd.to_datetime(shots["date"])
+    ref = pd.Timestamp(ref) if ref is not None else dates.max()
+    age = ((ref - dates).dt.days / 365.25).clip(lower=0).to_numpy()
+    return 0.5 ** (age / HALF_LIFE_YEARS)
+
+
 def features(shots: pd.DataFrame) -> pd.DataFrame:
     X = pd.DataFrame(index=shots.index)
     for c in NUM:
@@ -76,6 +89,7 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
     X = features(shots)
     np_mask = ~pen
     Xn, yn, groups = X[np_mask], y[np_mask], shots.loc[np_mask, "match_id"].to_numpy()
+    wn = recency_weights(shots.loc[np_mask])
 
     oof = np.zeros(np_mask.sum())
     iters = []
@@ -85,7 +99,7 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
         rng = np.random.default_rng(SEED)
         inner = np.isin(groups[tr], rng.choice(g, len(g) // 8, replace=False))
         a, v = tr[~inner], tr[inner]
-        dtr = lgb.Dataset(Xn.iloc[a], yn[a])
+        dtr = lgb.Dataset(Xn.iloc[a], yn[a], weight=wn[a])
         b = lgb.train(PARAMS, dtr, 5000, valid_sets=[lgb.Dataset(Xn.iloc[v], yn[v], reference=dtr)],
                       callbacks=[lgb.early_stopping(150, verbose=False)])
         oof[te] = b.predict(Xn.iloc[te], num_iteration=b.best_iteration)
@@ -115,7 +129,8 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
     recent = shots.loc[np_mask, "label"].isin(recent_labels).to_numpy()
     older = (shots.loc[np_mask, "date"] < "2022-07-01").to_numpy() if "date" in shots else ~recent
     if recent.any() and older.any():
-        dtr = lgb.Dataset(Xn[older], yn[older])
+        dtr = lgb.Dataset(Xn[older], yn[older],
+                          weight=recency_weights(shots.loc[np_mask][older], ref="2022-07-01"))
         b = lgb.train(PARAMS, dtr, n_iter)
         pr = b.predict(Xn[recent])
         okr = recent & ok
@@ -125,7 +140,7 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
             "n": int(okr.sum()), "competitions": sorted(recent_labels), "trained_before": "2022-07-01"}
         del pr
 
-    booster = lgb.train(PARAMS, lgb.Dataset(Xn, yn), n_iter)
+    booster = lgb.train(PARAMS, lgb.Dataset(Xn, yn, weight=wn), n_iter)
     imp = pd.Series(booster.feature_importance("gain"), FEATURES)
     metrics["importance"] = (imp / imp.sum()).sort_values(ascending=False).round(4).to_dict()
     # Calibration curve (OOF)

@@ -1,7 +1,10 @@
+import json
+
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from sportpulse import config
 from webapp import state, ui
 
 mm = state.match_metrics()
@@ -37,6 +40,29 @@ with t1:
             "outcomes. For reference, the winning entry of the 2017 Soccer Prediction Challenge "
             "(no betting data) scored ≈0.206 on its own test set. <b>Accuracy</b> alone is a weak metric: "
             "always picking the favourite already gets ~50%.")
+    bench_path = config.MATCH_ARTIFACTS / "benchmark_dixon_coles.json"
+    if bench_path.exists():
+        bench = json.loads(bench_path.read_text())
+        ui.section("Published models, same matches", count=f"{bench['n_covered']:,}", icon="scale")
+        src = {"SportPulse Market-Residual (production)": "this repo",
+               "Bookmaker market (Shin)": "Štrumbelj 2014",
+               "SportPulse Fundamentals (no odds)": "this repo",
+               "Dixon & Coles (1997), monthly refit": "Dixon & Coles 1997"}
+        pv = bench["paired_vs_dixon_coles"]
+        bdf = pd.DataFrame([{"Model": k, "Source": src.get(k, ""), "RPS ↓": v["rps"], "Log-loss ↓": v["log_loss"],
+                             "Δ RPS vs Dixon-Coles": f"{pv[k]['diff']:+.4f}" if k in pv else "reference",
+                             "z": f"{pv[k]['z']:.1f}" if k in pv else "reference"}
+                            for k, v in bench["models"].items()]).sort_values("RPS ↓")
+        st.dataframe(bdf, hide_index=True, width="stretch",
+                     column_config={"Model": st.column_config.TextColumn(width="large"),
+                                    "RPS ↓": st.column_config.NumberColumn(format="%.4f"),
+                                    "Log-loss ↓": st.column_config.NumberColumn(format="%.4f"),
+                                    "z": st.column_config.TextColumn("Paired z")})
+        pm = bench["paired_production_vs_market"]
+        ui.note(f"Dixon-Coles is refit monthly per league on the previous three seasons (time decay ξ = {bench['xi']} "
+                f"per day, chosen on 2023-24). Paired per-match test, production vs market: "
+                f"ΔRPS {pm['diff']:+.5f}, z = {pm['z']:.1f}. That is a consistent edge, not a statistically "
+                "significant one.")
     fp = mm["model"]["fund_params"]
     ui.section("Production configuration", icon="layers")
     st.markdown(ui.kv([("Fundamentals booster", f"{mm['model']['fund_iters']} trees · {fp['num_leaves']} leaves · "
