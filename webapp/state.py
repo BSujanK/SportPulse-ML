@@ -95,3 +95,16 @@ def competition_order() -> list[str]:
     """Competitions, most recent first."""
     m = analyst("matches")
     return m.groupby("label").date.max().sort_values(ascending=False).index.tolist()
+
+
+MV = config.ARTIFACTS_DIR / "market_value"
+
+
+@st.cache_data(show_spinner=False)
+def market_value(name: str) -> pd.DataFrame:
+    return pd.read_parquet(MV / f"{name}.parquet")
+
+
+@st.cache_data(show_spinner=False)
+def market_value_metrics() -> dict:
+    return json.loads((MV / "metrics.json").read_text())

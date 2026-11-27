@@ -34,3 +34,4 @@ data/processed/
 # players_latest.parquet). Regenerate with: python -m sportpulse.train players
 artifacts/players/value.lgb
 catboost_info/
+artifacts/market_value/*.lgb

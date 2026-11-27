@@ -44,7 +44,8 @@ nav = st.navigation({
     ],
     "Players": [
         page("fpl.py", "PL Player Forecaster", "query_stats", "pl-player-forecaster"),
-        page("player_scout.py", "Player Scout", "person_search", "player-scout"),
+        page("market_value.py", "Market Value", "payments", "market-value"),
+        page("player_scout.py", "EA FIFA Scout", "person_search", "player-scout"),
         page("archetypes.py", "Archetypes", "hub", "archetypes"),
     ],
     "Data": [page("datasets.py", "Datasets", "database", "datasets")],

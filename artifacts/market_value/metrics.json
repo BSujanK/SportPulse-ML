@@ -1,0 +1,175 @@
+{
+  "data": {
+    "valuations": 555102,
+    "players": 41078,
+    "first": "2013-07-01",
+    "last": "2026-06-12",
+    "train": 467619,
+    "valid": 43444,
+    "test": 44039
+  },
+  "forecast": {
+    "leaderboard": [
+      {
+        "model": "SportPulse forecast (LightGBM)",
+        "mae_log": 0.19975303740006523,
+        "median_ape": 0.13328946642841588,
+        "within_25pct": 0.7335864800881325,
+        "r2_log": 0.9638265499435205,
+        "spearman": 0.9794646537413769,
+        "n": 42663
+      },
+      {
+        "model": "Persistence + age trend",
+        "mae_log": 0.2340986972073042,
+        "median_ape": 0.18418311494661,
+        "within_25pct": 0.6819023509832877,
+        "r2_log": 0.9507490848217043,
+        "spearman": 0.9721380711553429,
+        "n": 42663
+      },
+      {
+        "model": "Persistence (last Transfermarkt value)",
+        "mae_log": 0.2324542561990839,
+        "median_ape": 0.16666666666666685,
+        "within_25pct": 0.6734875653376462,
+        "r2_log": 0.9415222877740874,
+        "spearman": 0.9676595348953926,
+        "n": 42663
+      }
+    ],
+    "direction_accuracy": 0.797675647120972,
+    "direction_n": 30288,
+    "iters": 1278,
+    "importance": {
+      "n_valuations": 0.1883,
+      "age": 0.0891,
+      "league": 0.0774,
+      "prev_change": 0.0757,
+      "prev_log_value": 0.0742,
+      "peak_log_value": 0.0606,
+      "minutes_180": 0.0589,
+      "days_since_value": 0.0533,
+      "league_value_index": 0.0379,
+      "club_value_index": 0.0309,
+      "age2": 0.0266,
+      "below_peak": 0.0232,
+      "club_league_ppg_365": 0.0224,
+      "change_1y": 0.0178,
+      "sub_position": 0.0177
+    }
+  },
+  "fair_value": {
+    "leaderboard": [
+      {
+        "model": "SportPulse fair value (LightGBM)",
+        "mae_log": 0.5845888008039996,
+        "median_ape": 0.4351821934499561,
+        "within_25pct": 0.3044801198937306,
+        "r2_log": 0.7640772467404349,
+        "spearman": 0.8447406903606742,
+        "n": 44039
+      },
+      {
+        "model": "League \u00d7 position \u00d7 age median",
+        "mae_log": 1.0862265339504813,
+        "median_ape": 0.6923076923076934,
+        "within_25pct": 0.1740956879129862,
+        "r2_log": 0.21224147785172165,
+        "spearman": 0.49873656601634175,
+        "n": 44039
+      }
+    ],
+    "iters": 4915,
+    "importance": {
+      "club_value_index": 0.1607,
+      "apps_730": 0.1557,
+      "min_top5_365": 0.1118,
+      "league": 0.0928,
+      "minutes_730": 0.0716,
+      "age": 0.0663,
+      "apps_365": 0.0402,
+      "league_value_index": 0.0273,
+      "age2": 0.0261,
+      "minutes_365": 0.0222,
+      "min_uefa_365": 0.0219,
+      "apps_career": 0.0182,
+      "club_league_ppg_365": 0.0182,
+      "minutes_career": 0.018,
+      "sub_position": 0.017
+    }
+  },
+  "fees": {
+    "leaderboard": [
+      {
+        "model": "SportPulse fee model (LightGBM)",
+        "mae_log": 0.5353557448693363,
+        "median_ape": 0.3904583929582631,
+        "within_25pct": 0.3373048479868529,
+        "r2_log": 0.8000730784528272,
+        "spearman": 0.8959879578996485,
+        "n": 2434
+      },
+      {
+        "model": "Transfermarkt value, calibrated",
+        "mae_log": 0.6663729752510869,
+        "median_ape": 0.45754719612350137,
+        "within_25pct": 0.2953985209531635,
+        "r2_log": 0.6829776041417017,
+        "spearman": 0.8267916782363738,
+        "n": 2434
+      },
+      {
+        "model": "Transfermarkt value",
+        "mae_log": 0.6654523577241356,
+        "median_ape": 0.4993734335839582,
+        "within_25pct": 0.30977814297452755,
+        "r2_log": 0.6740536808568716,
+        "spearman": 0.8267916782363738,
+        "n": 2434
+      }
+    ],
+    "n_train": 11829,
+    "n_valid": 2308,
+    "iters": 617,
+    "importance": {
+      "prev_log_value": 0.4986,
+      "peak_log_value": 0.1067,
+      "to_league": 0.0737,
+      "to_value_index": 0.0505,
+      "league": 0.0247,
+      "club_value_index": 0.0246,
+      "age": 0.0245,
+      "sub_position": 0.0141,
+      "days_since_value": 0.0134,
+      "to_league_value_index": 0.0131,
+      "below_peak": 0.0124,
+      "prev_change": 0.0114,
+      "to_league_ppg_365": 0.011,
+      "change_1y": 0.0108,
+      "league_value_index": 0.0096
+    },
+    "big_moves": {
+      "n": 172,
+      "SportPulse": {
+        "mae_log": 0.2969051801603065,
+        "median_ape": 0.18553049577416936,
+        "within_25pct": 0.6104651162790697,
+        "r2_log": -0.08348100749169518,
+        "spearman": 0.7346506144877981,
+        "n": 172
+      },
+      "Transfermarkt value": {
+        "mae_log": 0.37741091193220677,
+        "median_ape": 0.22597960279119889,
+        "within_25pct": 0.5290697674418605,
+        "r2_log": -1.0409358993207674,
+        "spearman": 0.6924253015485617,
+        "n": 172
+      }
+    }
+  },
+  "asof": "2026-06-13",
+  "current_players": 18404,
+  "runtime_sec": 484.1
+}

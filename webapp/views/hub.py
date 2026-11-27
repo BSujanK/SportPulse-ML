@@ -11,6 +11,9 @@ import json as _json
 mm, pm = state.match_metrics(), state.player_metrics()
 fm = _json.loads((config.ARTIFACTS_DIR / "fpl/metrics.json").read_text())
 im = _json.loads((config.ARTIFACTS_DIR / "international/metrics.json").read_text())
+mv = state.market_value_metrics()
+mvr = {t: {r["model"]: r for r in mv[t]["leaderboard"]} for t in ("forecast", "fair_value", "fees")}
+fee_sp, fee_tm = mvr["fees"]["SportPulse fee model (LightGBM)"], mvr["fees"]["Transfermarkt value"]
 flb = {r["model"]: r for r in fm["leaderboard"]}
 ilb = {r["model"]: r for r in im["competitive"]}
 lb = {r["model"]: r for r in mm["leaderboard"]}
@@ -45,7 +48,8 @@ ui.kpi_row([
     ui.kpi("Log-loss", f"{prod['log_loss']:.4f}", "", f"market {mkt['log_loss']:.4f}", "orange"),
     ui.kpi("1X2 accuracy", f"{prod['accuracy'] * 100:.1f}", "%", f"on {prod['n']:,} test matches"),
     ui.kpi("Calibration error", f"{prod['ece'] * 100:.2f}", "%", "class-wise ECE", "good"),
-    ui.kpi("Player value R²", f"{pm['value']['model']['r2']:.3f}", "", "log €, unseen players", "orange"),
+    ui.kpi("Transfer-fee error", f"{fee_sp['median_ape'] * 100:.0f}", "%",
+           f"Transfermarkt value {fee_tm['median_ape'] * 100:.0f}%", "good"),
 ])
 
 v, d, a = pm["value"]["model"], pm["development"]["model"], pm["archetypes"]
@@ -72,14 +76,21 @@ models = [
     dict(title="scoreline-poisson-dixon-coles", icon="grid", page=V + "match_forecaster.py", link="Match Forecaster",
          desc="Poisson goal rates with Dixon-Coles low-score dependence: O/U, BTTS, correct score.",
          meta=["Count regression", f"O/U log-loss {mm['over_under_25']['logloss_model']:.4f}"]),
-    dict(title="player-market-value", icon="euro", page=V + "player_scout.py", link="Player Scout",
-         desc="Market value from 60+ attributes, contract and league, valued on unseen players.",
-         meta=["Regression", f"R² {v['r2']:.3f}"]),
-    dict(title="player-development-quantile", icon="trending", page=V + "player_scout.py", link="Player Scout",
-         desc="Next-season rating with 80% quantile intervals; beats persistence and potential-pull.",
+    dict(title="transfer-fee", icon="euro", page=V + "market_value.py", link="Market Value",
+         desc="Fee for a real transfer from form, minutes, both clubs and the valuation history.",
+         meta=["Regression", f"error {fee_sp['median_ape'] * 100:.0f}% vs TM {fee_tm['median_ape'] * 100:.0f}%"]),
+    dict(title="market-value-forecast", icon="trending", page=V + "market_value.py", link="Market Value",
+         desc="Predicts each player's next Transfermarkt valuation from everything known today.",
+         meta=["Regression", f"error {mvr['forecast']['SportPulse forecast (LightGBM)']['median_ape'] * 100:.1f}% "
+                             f"vs {mvr['forecast']['Persistence (last Transfermarkt value)']['median_ape'] * 100:.1f}%"]),
+    dict(title="performance-fair-value", icon="search", page=V + "market_value.py", link="Market Value",
+         desc="Values a player from minutes, output, club and league alone, to flag mispriced players.",
+         meta=["Regression", f"R² {mvr['fair_value']['SportPulse fair value (LightGBM)']['r2_log']:.2f}"]),
+    dict(title="ea-fifa-development", icon="activity", page=V + "player_scout.py", link="EA FIFA Scout",
+         desc="Next-season EA FIFA rating with 80% quantile intervals (FIFA 15–22 data).",
          meta=["Quantile regression", f"MAE {d['mae']:.2f}"]),
     dict(title="player-archetypes-gmm", icon="component", page=V + "archetypes.py", link="Archetypes",
-         desc=f"Gaussian mixture on quality-normalised playing style, {a['k']} roles chosen by BIC.",
+         desc=f"Gaussian mixture on EA FIFA playing-style attributes, {a['k']} roles chosen by BIC.",
          meta=["Clustering", f"{a['k']} roles"]),
 ]
 ui.section("Models", f"{len(models)} · {upd.lower()}", icon="box")
@@ -102,6 +113,10 @@ datasets = [
     dict(title="international-results", icon="database", kind="ds", page=V + "international.py", link="National Teams",
          desc="Every men's international since 1872, with tournament and venue.",
          meta=[f"{im['data']['matches'] / 1000:.0f}k rows", f"to {im['data']['last']}"]),
+    dict(title="transfermarkt-2013-2026", icon="database", kind="ds", page=V + "market_value.py", link="Market Value",
+         desc="Market valuations, appearances, games and transfers with fees (dcaribou snapshot).",
+         meta=[f"{mv['data']['valuations'] / 1000:.0f}k valuations", f"{mv['data']['players']:,} players",
+               f"to {mv['data']['last']}"]),
     dict(title="ea-fifa-players-15-22", icon="database", kind="ds", page=D, link="Dataset viewer",
          desc="Every player in EA Sports FIFA 15–22: 60+ attributes, value, wage and contract.",
          meta=[f"{pm['data']['player_seasons'] / 1000:.0f}k rows", f"{pm['data']['players']:,} players"]),
