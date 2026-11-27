@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 
 from sportpulse import config
+from sportpulse.features.club_value import ClubValueLookup
 from sportpulse.features.engine import pre_match_row
 from sportpulse.features.market import shin_probabilities
 from sportpulse.models.goals import GoalsModel, score_matrix
@@ -49,6 +50,7 @@ class MatchPredictor:
         self.teams = pd.read_parquet(path / "team_state.parquet").set_index("team_id")
         self.leagues = pd.read_parquet(path / "league_state.parquet").set_index("division")
         self.recent = pd.read_parquet(path / "recent_matches.parquet")
+        self.club_values = ClubValueLookup(path / "club_values.parquet")
 
     @cached_property
     def metrics(self) -> dict:
@@ -93,6 +95,7 @@ class MatchPredictor:
             row.update({"mkt_p_h": p_mkt[0], "mkt_p_d": p_mkt[1], "mkt_p_a": p_mkt[2],
                         "mkt_max_p_h": p_mkt[0], "mkt_max_p_d": p_mkt[1], "mkt_max_p_a": p_mkt[2],
                         "mkt_overround": float(sum(1 / o for o in odds))})
+        row.update(self.club_values.row(home_id, away_id, date))
         row["tier"] = config.DIVISIONS[division][2]
         row["division"] = division
         X = pd.DataFrame([row])

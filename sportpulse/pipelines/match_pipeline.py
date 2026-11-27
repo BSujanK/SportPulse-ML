@@ -25,6 +25,7 @@ from sklearn.linear_model import LogisticRegression
 from sportpulse import config
 from sportpulse.data.loaders import load_matches
 from sportpulse.evaluation import metrics as M
+from sportpulse.features import club_value
 from sportpulse.features.engine import build_features, fundamental_features
 from sportpulse.models.goals import GoalsModel
 from sportpulse.models.match_outcome import DEFAULT_FUND_PARAMS, MatchOutcomeModel
@@ -76,6 +77,7 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     log.info("Building features for %d matches", len(matches))
     feats, teams, leagues = build_features(matches)
     feats["division"] = matches["division"].values
+    feats = club_value.add_features(feats, matches, club_value.team_values(matches))
 
     y = matches["result"].map({"H": 0, "D": 1, "A": 2}).to_numpy()
     hg, ag = matches["hg"].to_numpy(float), matches["ag"].to_numpy(float)
