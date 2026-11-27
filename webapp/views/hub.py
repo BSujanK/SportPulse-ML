@@ -77,7 +77,7 @@ models = [
          desc="LightGBM boosted from the de-vigged bookmaker prior. The production 1X2 model.",
          meta=["Classification", f"RPS {prod['rps']:.4f}"]),
     dict(title="match-outcome-fundamentals", icon="scale", page=V + "match_forecaster.py", link="Match Forecaster",
-         desc="Pure football model: Elo, pi-ratings, form and league context. No betting data.",
+         desc="Elo, pi-ratings, form, league context and Transfermarkt club squad value. No betting data.",
          meta=["Classification", f"RPS {fund['rps']:.4f}"]),
     dict(title="scoreline-poisson-dixon-coles", icon="grid", page=V + "match_forecaster.py", link="Match Forecaster",
          desc="Poisson goal rates with Dixon-Coles low-score dependence: O/U, BTTS, correct score.",

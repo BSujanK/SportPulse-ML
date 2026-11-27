@@ -100,7 +100,7 @@ trained on **{d['matches_total']:,} real matches** from **{d['divisions']} leagu
 
 | Component | Method | Purpose |
 |---|---|---|
-| Fundamentals | LightGBM, Optuna-tuned | Ratings and form only; used when no odds are available |
+| Fundamentals | LightGBM, Optuna-tuned | Ratings, form and Transfermarkt club squad value (top flights, 2012 on; values frozen at the June 2026 snapshot); used when no odds are available |
 | Market residual | LightGBM boosted from the de-vigged market probabilities | Learns systematic corrections to bookmaker prices |
 | Calibration | Temperature scaling on the 2023-24 season | Keeps probabilities honest (calibration error {prod['ece'] * 100:.2f}%) |
 | Goals | Two Poisson LightGBMs with a Dixon-Coles adjustment (ρ = {mm['goals']['rho']:.3f}) | Scorelines, over/under 2.5, both teams to score, xG |

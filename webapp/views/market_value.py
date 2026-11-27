@@ -15,7 +15,7 @@ def row(board, model):
     return next(r for r in board["leaderboard"] if r["model"] == model)
 
 
-ui.repo_header("sportpulse", "market-value", "euro", badge="● live",
+ui.repo_header("sportpulse", "market-value", "euro", badge="snapshot · Jun 2026",
                tag_items=[("task", "Tabular Regression"), ("lib", "LightGBM"), ("ds", "transfermarkt-2013-2026"),
                           ("", f"{mm['data']['valuations']:,} valuations"), ("", f"as of {mm['asof']}")])
 
