@@ -265,7 +265,12 @@ def club_id_map(matches: pd.DataFrame) -> dict:
     for div, comp in FD_TO_TM.items():
         a = matches[matches.division == div][["date", "home", "away", "hg", "ag"]]
         b = g[g.competition_id == comp][["date", "home_club_id", "away_club_id", "home_club_goals", "away_club_goals"]]
-        j = a.merge(b, left_on=["date", "hg", "ag"], right_on=["date", "home_club_goals", "away_club_goals"])
+        b = b.rename(columns={"home_club_goals": "hg", "away_club_goals": "ag"})
+        # several fixtures on one day often share a score: vote only on (date, score) keys unique in both sources
+        key = ["date", "hg", "ag"]
+        a = a[~a.duplicated(key, keep=False)]
+        b = b[~b.duplicated(key, keep=False)]
+        j = a.merge(b, on=key)
         votes = pd.concat([j[["home", "home_club_id"]].set_axis(["team", "club"], axis=1),
                            j[["away", "away_club_id"]].set_axis(["team", "club"], axis=1)])
         for team, s in votes.groupby("team").club:

@@ -98,7 +98,8 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     log.info("Fitting outcome model")
     model.fit(feats, y, train, valid)
     log.info("Fitting goals model")
-    goals = GoalsModel(all_cols, divisions).fit(feats, hg, ag, train, valid)
+    # club values were validated for the outcome model only; the goals model keeps its feature set
+    goals = GoalsModel([c for c in all_cols if c not in club_value.COLS], divisions).fit(feats, hg, ag, train, valid)
 
     # ── Evaluation on the held-out test window ──────────────────────────────
     pred = model.predict(feats)
