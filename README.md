@@ -413,6 +413,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Club matches | Asian-handicap price + best-vs-average odds gaps | better | 0.20335 → 0.20342 | rejected |
 | Club matches, no odds | Transfermarkt club squad value (point-in-time, home minus away) | 0.20788 → 0.20758 | 0.20776 → 0.20757 | adopted (second fundamentals booster) |
 | Club matches, with odds | Same feature in the market-residual model | 0.20420 → 0.20415 | 0.20335 → 0.20338 | rejected (production unchanged) |
+| Club matches, no odds | CatBoost fundamentals; 50/50 log-linear blend with LightGBM | CatBoost worse; blend 0.20758 → 0.20757 | CatBoost worse; blend 0.20757 → 0.20753 | not adopted: gain within noise, and the blend would add CatBoost to the deployed app |
 | National teams | Recency-weighted training | worse | — | rejected |
 | xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
 | VAEP | Third previous action + possession context | P(scores) 0.046735 → 0.046561, P(concedes) 0.013719 → 0.013512 | AUC 0.8322 → 0.8347 and 0.8507 → 0.8607 | adopted |
