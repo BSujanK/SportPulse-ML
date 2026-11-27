@@ -61,3 +61,33 @@ class ClubValueLookup:
         S = self.tv[self.tv.month == m].set_index("team_id")
         h, a = S.reindex([home_id]).iloc[0], S.reindex([away_id]).iloc[0]
         return {"cv18_diff": h.cv18 - a.cv18, "cv11_diff": h.cv11 - a.cv11}
+
+
+# ── Manager tenure ───────────────────────────────────────────────────────────────────────────────────
+MGR_COLS = ["mgr_ten_h", "mgr_ten_a", "mgr_new_h", "mgr_new_a"]
+NEW_MANAGER_GAMES = 6
+
+
+def manager_tenure(matches: pd.DataFrame) -> pd.DataFrame:
+    """Games each club's manager had already taken charge of before every match (Transfermarkt games, all
+    competitions, 2012 on). Matches after the Transfermarkt snapshot get NaN, as do uncovered clubs, so live
+    forecasts never use a stale manager."""
+    try:
+        from sportpulse.data import transfermarkt as T
+        g = T.table("games").dropna(subset=["date"])
+        cmap = T.club_id_map(matches)
+    except Exception as e:  # noqa: BLE001 - offline: no manager features
+        log.warning("Transfermarkt games unavailable (%s); manager tenure left empty", e)
+        return pd.DataFrame(np.nan, index=matches.index, columns=MGR_COLS)
+    rows = pd.concat([g[["date", "home_club_id", "home_club_manager_name"]].set_axis(["date", "club", "mgr"], axis=1),
+                      g[["date", "away_club_id", "away_club_manager_name"]].set_axis(["date", "club", "mgr"], axis=1)])
+    rows = rows.dropna(subset=["mgr"]).sort_values(["club", "date"]).drop_duplicates(["club", "date"])
+    rows["spell"] = (rows.mgr != rows.groupby("club").mgr.shift(1)).astype(int).groupby(rows.club).cumsum()
+    rows["tenure"] = rows.groupby(["club", "spell"]).cumcount()
+    out = pd.DataFrame(index=matches.index)
+    for side, col in (("h", "home"), ("a", "away")):
+        k = pd.DataFrame({"club": (matches["division"] + "|" + matches[col]).map(cmap), "date": matches["date"]})
+        t = k.merge(rows[["club", "date", "tenure"]], on=["club", "date"], how="left")["tenure"].to_numpy(float)
+        out[f"mgr_ten_{side}"] = np.log1p(t)
+        out[f"mgr_new_{side}"] = np.where(np.isnan(t), np.nan, (t < NEW_MANAGER_GAMES).astype(float))
+    return out

@@ -78,6 +78,7 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     feats, teams, leagues = build_features(matches)
     feats["division"] = matches["division"].values
     feats = club_value.add_features(feats, matches, club_value.team_values(matches))
+    feats[club_value.MGR_COLS] = club_value.manager_tenure(matches).to_numpy()
 
     y = matches["result"].map({"H": 0, "D": 1, "A": 2}).to_numpy()
     hg, ag = matches["hg"].to_numpy(float), matches["ag"].to_numpy(float)
@@ -89,11 +90,12 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
 
     # Club squad values help the fundamentals model on validation and test, but not the market-residual
     # model (as a feature or through its prior). They feed a second fundamentals booster only.
-    all_cols = [c for c in feats.columns if c not in club_value.COLS]
+    all_cols = [c for c in feats.columns if c not in club_value.COLS + club_value.MGR_COLS]
     fund_cols = fundamental_features(all_cols)
 
     tuning = None
-    model = MatchOutcomeModel(fund_cols, all_cols, divisions, extra_fund_features=list(club_value.COLS))
+    model = MatchOutcomeModel(fund_cols, all_cols, divisions,
+                              extra_fund_features=list(club_value.COLS) + club_value.MGR_COLS)
     if trials:
         model.fund_params, tuning = _tune_fundamentals(feats, y, train, valid, fund_cols,
                                                        divisions, trials)
