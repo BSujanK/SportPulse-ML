@@ -178,30 +178,32 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
     valid = lab & (s == VALID_SEASON)
     test = lab & np.isin(s, TEST_SEASONS)
 
-    # Production model: statistics + fixture context only. The variant that also stacks
-    # FPL's archived xP scores better in backtest, but the live `ep_next` feed has a very
-    # different distribution from the archived xP (non-zero for almost every player vs
-    # ~15-50% in the archive), so it is reported as research and not deployed.
+    # Production model: statistics + fixture context + FPL's own pre-deadline expected points (which carry
+    # injury and team news). The archived xP equals the live `ep_this` snapshot exactly, and the live `ep_next`
+    # has the same distribution, so the feature is served consistently. The archive's definition changed in
+    # 2025-26 (many more zeros); the test window uses the current definition and still improves.
+    # A statistics-only model is kept as the comparison row.
     stats_cols = [c for c in feature_cols if c != "fpl_xp"]
     from sportpulse.models.fpl_model import tune_head
     head_params = {}
     if trials:
         for head in ("p_play", "pts_if_played", "points"):
-            head_params[head] = tune_head(F, full, train, valid, stats_cols, head, trials)
+            head_params[head] = tune_head(F, full, train, valid, feature_cols, head, trials)
             log.info("Tuned %s: %s", head, head_params[head])
-    model = FPLForecaster(stats_cols, head_params=head_params).fit(F, full, train, valid)
+    model = FPLForecaster(feature_cols, head_params=head_params).fit(F, full, train, valid)
     w = model.fit_blend(F, full, valid)
     log.info("Direct/hurdle blend weight on direct head: %.2f", w)
     P = model.predict(F)
-    xp_variant = FPLForecaster(feature_cols, targets=("points",)).fit(F, full, train, valid)
-    P_xp = xp_variant.predict(F)["points"]
+    stats_model = FPLForecaster(stats_cols).fit(F, full, train, valid)
+    stats_model.fit_blend(F, full, valid)
+    P_stats = stats_model.predict(F)["points"]
 
     # ── evaluation ──────────────────────────────────────────────────────────
     T = full[test].copy()
     T["pred"] = P.loc[test, "points"].to_numpy()
     T["pred_direct"] = P.loc[test, "direct"].to_numpy()
     T["pred_hurdle"] = P.loc[test, "hurdle"].to_numpy()
-    T["pred_xp"] = P_xp[test].to_numpy()
+    T["pred_stats"] = P_stats[test].to_numpy()
     T["form6"] = F.loc[test, "total_points_r6"].fillna(0).to_numpy()
     T["form_ewm"] = F.loc[test, "total_points_ewm"].fillna(0).to_numpy()
     for k in ("p_60", "p_goal", "p_assist"):
@@ -221,8 +223,8 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
          "top_xi": _top_xi(T[xm], "pred_direct")},
         {"model": "Hurdle head only (P(plays) × points if plays)", **reg(T["pred_hurdle"].to_numpy(), xm),
          "top_xi": _top_xi(T[xm], "pred_hurdle")},
-        {"model": "Research: SportPulse + archived FPL xP", **reg(T["pred_xp"].to_numpy(), xm),
-         "top_xi": _top_xi(T[xm], "pred_xp")},
+        {"model": "Statistics only, no FPL xP (previous production)", **reg(T["pred_stats"].to_numpy(), xm),
+         "top_xi": _top_xi(T[xm], "pred_stats")},
         {"model": "FPL official xP", **reg(T["xP"].to_numpy(), xm), "top_xi": _top_xi(T[xm], "xP")},
         {"model": "Form (last 6 mean)", **reg(T["form6"].to_numpy(), xm), "top_xi": _top_xi(T[xm], "form6")},
         {"model": "Form (EWM)", **reg(T["form_ewm"].to_numpy(), xm), "top_xi": _top_xi(T[xm], "form_ewm")},
@@ -232,7 +234,7 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
     # Gameweek-level ranking quality among players who have been playing
     active = T[xm & (F.loc[test, "minutes_r6"].to_numpy() > 0)]
     gw_rho = {}
-    for col in ("pred", "pred_xp", "xP", "form6"):
+    for col in ("pred", "pred_stats", "xP", "form6"):
         gw_rho[col] = float(active.groupby(["season", "round"]).apply(
             lambda g: spearmanr(g["total_points"], g[col]).statistic, include_groups=False).mean())
 
@@ -261,7 +263,7 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
 
     weekly = (T[xm].groupby(["season", "round"]).apply(lambda g: pd.Series({
         "model": g.nlargest(11, "pred")["total_points"].mean(),
-        "model_xp_research": g.nlargest(11, "pred_xp")["total_points"].mean(),
+        "model_stats": g.nlargest(11, "pred_stats")["total_points"].mean(),
         "xP": g.nlargest(11, "xP")["total_points"].mean(),
         "form": g.nlargest(11, "form6")["total_points"].mean()}), include_groups=False).reset_index())
 
@@ -275,9 +277,10 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
         avail = np.where(nxt["status"].isin(["i", "s", "u", "n"]) & nxt["chance_next"].isna(), 0, avail)
         nxt["xpts_raw"] = Pf["points"].to_numpy()
         nxt["availability"] = avail
-        nxt["xpts"] = nxt["xpts_raw"] * avail
+        # FPL's ep_next (a model input) already prices in availability, so the flag is shown, not applied again
+        nxt["xpts"] = nxt["xpts_raw"]
         for k in ("p_60", "p_goal", "p_assist"):
-            nxt[k] = Pf[k].to_numpy() * avail
+            nxt[k] = Pf[k].to_numpy()
         nxt["price"] = nxt["now_cost"] / 10
         nxt["form6"] = F.loc[is_fut, "total_points_r6"].to_numpy()
         nxt["xg_r6"] = F.loc[is_fut, "expected_goals_r6"].to_numpy()
@@ -291,7 +294,7 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
         nxt[keep].sort_values("xpts", ascending=False).to_parquet(OUT / "next_gameweek.parquet", index=False)
 
     tcols = ["season", "round", "kickoff", "name", "team", "opponent", "position", "total_points",
-             "pred", "pred_xp", "xP", "form6", "minutes", "p_60", "p_goal", "p_assist"]
+             "pred", "pred_stats", "xP", "form6", "minutes", "p_60", "p_goal", "p_assist"]
     T[tcols].to_parquet(OUT / "test_predictions.parquet", index=False)
     weekly.to_parquet(OUT / "weekly_top_xi.parquet", index=False)
     imp = model.importance().head(30)

@@ -76,16 +76,16 @@ EA FIFA models (FIFA 15–22 snapshot). The value model reproduces EA's own list
 
 | Model | Points MAE ↓ | Spearman ↑ | Best-XI pts/player ↑ |
 |---|---|---|---|
-| **SportPulse LightGBM (production)** | 0.998 | 0.720 | **4.66** |
-| Direct points head only | 0.999 | 0.719 | 4.68 |
-| Hurdle head only (P(plays) × points if plays) | 0.991 | 0.723 | 4.71 |
-| Research: SportPulse + archived FPL xP | 0.874 | 0.706 | 6.55 |
+| **SportPulse LightGBM (production)** | 0.874 | 0.708 | **6.56** |
+| Direct points head only | 0.874 | 0.706 | 6.55 |
+| Hurdle head only (P(plays) × points if plays) | 0.874 | 0.720 | 6.09 |
+| **Statistics only, no FPL xP (previous production)** | 0.998 | 0.720 | **4.66** |
 | FPL official xP | 1.092 | 0.327 | 3.41 |
 | Form (last 6 mean) | 1.099 | 0.686 | 3.83 |
 | Form (EWM) | 1.095 | 0.657 | 4.14 |
 | Oracle (actual points) | 0.000 | 1.000 | 12.51 |
 
-P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
+P(60+ min) AUC 0.934 · P(goal) AUC 0.891 · P(assist) AUC 0.846.
 
 ### National-team forecaster (test: 2024-07-01 → 2026-11-17)
 
@@ -187,10 +187,11 @@ under 5-fold CV 0.2606 vs 0.2660.
   the source lists players who reached a covered league at any time up to 2026. Citizenship is the current record, so
   nationality switchers are assigned their present country.
 
-**Fantasy points.** The reference is the official FPL expected-points (xP) forecast: MAE 0.998 vs 1.092, and the
-best-XI picks score 4.66 vs 3.41 points per player over the test window. Two measures go the other way: ranking
-*active* players within a gameweek, xP is better (Spearman 0.720 vs 0.561), and in 2026-27 so far its best XI scores
-4.96 against 4.88. Treat SportPulse as the better points estimate overall, not as a strictly better ranking.
+**Fantasy points.** The reference is the official FPL expected-points (xP) forecast, which SportPulse now uses as an
+input. Over the test window SportPulse has MAE 0.874 vs 1.092 and its best-XI picks score 6.56 vs 3.41 points per
+player (7.92 vs 4.96 in 2026-27 so far). Ranking *active* players within a gameweek, xP alone is still better
+(Spearman 0.720 vs 0.603), so treat SportPulse as the better points estimate and XI picker, not a strictly better
+ranking.
 
 **Transfer fees.** Transfermarkt's crowd-sourced market value is the standard reference for fees. On
 2,434 paid transfers from July 2025 to July 2026, the SportPulse fee model has median error
@@ -289,13 +290,16 @@ odds), never touched until evaluation. Then refit on all data from July 2002 for
   and shots on target for, naive goals-form "xG", recent points and the Elo win probability, from the team's
   perspective; plus team and opponent rolling FPL xG.
 * Six LightGBM heads: points (L2), P(60+ min), P(goal), P(assist), and a hurdle pair P(plays) × points if plays,
-  blended 0.95 / 0.05 with the direct points head. Train 2016-17 → 2023-24, early-stop 2024-25, **test 2025-26 +
-  2026-27**. The production refit projects the next gameweek, scaled by FPL's chance-of-playing flag (players
-  flagged injured, suspended or unavailable are projected at zero).
+  blended with the direct points head. Train 2016-17 → 2023-24, early-stop 2024-25, **test 2025-26 + 2026-27**. The
+  production refit projects the next gameweek from FPL's `ep_next`; availability is already priced into it, so the
+  chance-of-playing flag is shown but not applied a second time.
 * The leaderboard's best XI is the top 11 by prediction, with no position or budget limits; the app's best XI is a
   greedy £85m squad with formation limits.
-* Benchmarked against FPL's own expected points (xP). A research variant that stacks archived xP scores
-  higher in backtest, but is not deployed because the live `ep_next` feed is distributed differently.
+* **FPL's own pre-deadline expected points (xP) are a model input.** They carry injury and team news that
+  statistics cannot see. The archived values equal the live `ep_this` snapshot exactly and the live `ep_next` has
+  the same distribution, so training and serving see the same feature; 19% of players with xP = 0 still played,
+  so the archive records the pre-deadline value, not the outcome. The archive's definition changed in 2025-26 (far
+  more zeros); the test window uses the current one. A statistics-only model is reported for comparison.
 
 ### National-team forecaster
 * World Football Elo (eloratings.net K-factors: World Cup 60, continental finals 50, qualifiers / Nations League 40,
@@ -406,6 +410,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
 | PL players | Optuna-tuned heads | better | mixed | rejected |
+| PL players | FPL's pre-deadline xP as a feature (archive verified to equal the live feed; no outcome leak) | MAE 1.043 → 0.690, best XI 5.49 → 10.12 | MAE 0.998 → 0.874, best XI 4.66 → 6.56, within-GW Spearman 0.561 → 0.603 | adopted |
 | PL players | LambdaRank head per gameweek (for ordering players), alone or rank-blended | within-GW Spearman 0.574 → 0.553 / 0.567 | 0.561 → 0.542 / 0.555 | rejected: the gap to FPL xP (0.720) is team news, not the objective |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |

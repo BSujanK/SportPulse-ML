@@ -21,7 +21,7 @@ nxt = nxt.assign(news=nxt["news"].fillna("").replace({"None": "", "nan": ""}))
 d = m["data"]
 lb = {r["model"]: r for r in m["leaderboard"]}
 prod = lb["SportPulse LightGBM (production)"]
-research = lb["Research: SportPulse + archived FPL xP"]
+stats_only = lb.get("Statistics only, no FPL xP (previous production)", {})
 xp = lb["FPL official xP"]
 
 ui.repo_header("sportpulse", "premier-league-player-forecaster", "target", badge="● live",
@@ -119,7 +119,7 @@ with t_eval:
     w = wk.copy()
     w["gw"] = w.season + " GW" + w["round"].astype(int).astype(str)
     fig = go.Figure()
-    for col, name, color in (("model", "SportPulse (production)", ui.ORANGE), ("model_xp_research", "Research: + archived xP", ui.ORANGE_3),
+    for col, name, color in (("model", "SportPulse (production)", ui.ORANGE), ("model_stats", "Statistics only (no FPL xP)", ui.ORANGE_3),
                              ("xP", "FPL official xP", "#64748b"), ("form", "Form (6)", "#38bdf8")):
         if col in w:
             fig.add_trace(go.Scatter(x=w.gw, y=w[col].rolling(4, min_periods=1).mean(), name=name,
@@ -133,12 +133,13 @@ with t_eval:
                  column_config={k: st.column_config.NumberColumn(lbl, format="%.4f") for k, lbl in
                                 {"logloss": "Log-loss ↓", "logloss_prior": "Prior log-loss", "logloss_form": "Form log-loss",
                                  "brier": "Brier ↓", "auc": "AUC ↑", "base_rate": "Base rate"}.items()})
-    ui.note("<b>About FPL xP.</b> The benchmark is FPL's own pre-deadline expected points (as archived by vaastav). It reflects injury and team news, which statistics cannot see. Stacking it as a feature "
-            f"(research row) lifts backtest best-XI points to {research['top_xi']:.2f}, but it is <b>not deployed</b>: the "
-            "live expected-points feed is non-zero for almost every player, while the archive is non-zero for only "
-            "15–50% of rows, so a model trained on the archive over-predicts live. Instead, production uses FPL's "
-            "chance-of-playing flag as a post-model availability multiplier. Per-gameweek Spearman among active players: "
-            + ", ".join(f"{ {'pred': 'SportPulse', 'pred_xp': 'research variant', 'xP': 'FPL xP', 'form6': 'recent form'}.get(k, k)} "
+    ui.note("<b>About FPL xP.</b> FPL's own pre-deadline expected points carry injury and team news that statistics "
+            "cannot see, so production uses them as a model input, alongside the statistics and fixture context. The "
+            "archived values match FPL's live feed exactly, so training and serving see the same feature; the archive's "
+            "definition changed in 2025-26, and the test window uses the current one. "
+            + (f"Without xP, best-XI points are {stats_only['top_xi']:.2f}. " if stats_only else "")
+            + "Per-gameweek Spearman among active players: "
+            + ", ".join(f"{ {'pred': 'SportPulse', 'pred_stats': 'statistics only', 'xP': 'FPL xP', 'form6': 'recent form'}.get(k, k)} "
                         f"{v:.3f}" for k, v in m["gw_spearman_active"].items()) + ".")
 
 with t_card:
