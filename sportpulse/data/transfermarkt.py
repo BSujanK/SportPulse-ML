@@ -201,3 +201,50 @@ class AsOf:
         F["minutes_share_365"] = (F["minutes_365"] / (F["club_games_365"] * 90)).where(F["club_games_365"] >= 15)
         F["age2"] = F["age"] ** 2
         return F
+
+
+# Transfermarkt citizenship -> martj42 international-results team names
+COUNTRY_ALIAS = {"Türkiye": "Turkey", "Korea, South": "South Korea", "Cote d'Ivoire": "Ivory Coast",
+                 "Ireland": "Republic of Ireland", "Bosnia-Herzegovina": "Bosnia and Herzegovina", "The Gambia": "Gambia",
+                 "Curacao": "Curaçao", "Chinese Taipei": "Taiwan", "Brunei Darussalam": "Brunei", "Hongkong": "Hong Kong",
+                 "Sao Tome and Principe": "São Tomé and Príncipe", "St. Kitts & Nevis": "Saint Kitts and Nevis",
+                 "St. Lucia": "Saint Lucia", "Korea, North": "North Korea", "Southern Sudan": "South Sudan",
+                 "Macao": "Macau", "St. Vincent & Grenadinen": "Saint Vincent and the Grenadines"}
+
+
+def _season(d: pd.Series) -> np.ndarray:
+    return (d.dt.year - (d.dt.month < 7)).to_numpy()
+
+
+def squad_values(start: str = "2005-01-01", end: str | None = None, covered_only: bool = True) -> pd.DataFrame:
+    """Monthly national squad strength: on the 1st of each month, every player's latest valuation from the
+    previous 365 days (strictly before that date), grouped by citizenship. sv26 = log of the summed value
+    of the 26 most valuable players, sv11 = mean log value of the top 11, svn = players found.
+
+    covered_only keeps a valuation only if the player's club at that date played games in the dataset that
+    season. The source lists players who reached a covered league at any time up to 2026, so without this
+    an early snapshot would include players selected by their later careers (look-ahead)."""
+    P = table("players").set_index("player_id")
+    cit = P.country_of_citizenship.map(lambda c: COUNTRY_ALIAS.get(c, c))
+    v = table("player_valuations")
+    if covered_only:
+        g = table("games")
+        seasons = pd.concat([pd.DataFrame({"club": g.home_club_id, "season": _season(g.date)}),
+                             pd.DataFrame({"club": g.away_club_id, "season": _season(g.date)})])
+        covered = set(zip(seasons.club, seasons.season))
+        keep = [(c, s) in covered for c, s in zip(v.current_club_id, _season(v.date))]
+        v = v[np.asarray(keep)]
+    v = v.assign(country=v.player_id.map(cit), lv=np.log(v.market_value_in_eur.clip(lower=10_000)))
+    v = v.dropna(subset=["country"]).sort_values("date")
+    end = end or (v.date.max() + pd.offsets.MonthBegin(2)).strftime("%Y-%m-%d")
+    out = []
+    for m in pd.date_range(start, end, freq="MS"):
+        w = v[(v.date < m) & (v.date >= m - pd.Timedelta(days=365))].drop_duplicates("player_id", keep="last")
+        w = w.sort_values("lv", ascending=False)
+        w["rank"] = w.groupby("country").cumcount()
+        top26 = w[w["rank"] < 26].groupby("country").lv.apply(lambda s: np.log(np.exp(s).sum()))
+        top11 = w[w["rank"] < 11].groupby("country").lv.mean()
+        out.append(pd.DataFrame({"month": m, "country": top26.index, "sv26": top26.values,
+                                 "sv11": top11.reindex(top26.index).values,
+                                 "svn": w.groupby("country").size().reindex(top26.index).values}))
+    return pd.concat(out, ignore_index=True)

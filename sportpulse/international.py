@@ -126,6 +126,43 @@ def build(d: pd.DataFrame):
     return pd.DataFrame(rows), teams
 
 
+def squad_snapshots(end: str | None = None) -> pd.DataFrame:
+    """Monthly Transfermarkt squad values per nation (cached artifact; rebuilt when the source is present)."""
+    path = OUT / "squad_values.parquet"
+    try:
+        from sportpulse.data import transfermarkt
+        sq = transfermarkt.squad_values(end=end)
+        OUT.mkdir(parents=True, exist_ok=True)
+        sq.to_parquet(path, index=False)
+        return sq
+    except Exception as e:  # noqa: BLE001 - offline: fall back to the committed snapshot
+        log.warning("Transfermarkt squad values unavailable (%s); using %s", e, path)
+        return pd.read_parquet(path)
+
+
+def squad_row(sq: pd.DataFrame, home, away, date) -> dict:
+    """Squad-value differences (home minus away) from the snapshot of the match month."""
+    m = pd.Timestamp(date).to_period("M").to_timestamp()
+    S = sq[sq.month == min(m, sq.month.max())].set_index("country")
+    h, a = S.reindex([home]).iloc[0], S.reindex([away]).iloc[0]
+    return {"sv26_diff": h.sv26 - a.sv26, "sv11_diff": h.sv11 - a.sv11}
+
+
+def add_squad_features(F: pd.DataFrame, d: pd.DataFrame, sq: pd.DataFrame) -> pd.DataFrame:
+    """Peeters (2018): crowd-sourced Transfermarkt squad values forecast international results.
+    The snapshot for a match is taken on the 1st of its month, from valuations strictly before."""
+    S = sq.set_index(["month", "country"])
+    mon = d["date"].dt.to_period("M").dt.to_timestamp()
+    sides = {}
+    for side, col in (("h", "home_team"), ("a", "away_team")):
+        j = S.reindex(pd.MultiIndex.from_arrays([mon, d[col]]))
+        sides[side] = j
+    F = F.copy()
+    F["sv26_diff"] = sides["h"].sv26.to_numpy() - sides["a"].sv26.to_numpy()
+    F["sv11_diff"] = sides["h"].sv11.to_numpy() - sides["a"].sv11.to_numpy()
+    return F
+
+
 SEEDS = (42, 7, 13, 21, 99)
 # Optuna TPE (30 trials) on validation log-loss.
 PARAMS = dict(objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=5,
@@ -138,6 +175,8 @@ def run(refresh: bool = False) -> dict:
     OUT.mkdir(parents=True, exist_ok=True)
     d = load_results(refresh)
     F, teams = build(d)
+    sq = squad_snapshots(end=(d["date"].max() + pd.offsets.MonthBegin(1)).strftime("%Y-%m-%d"))
+    F = add_squad_features(F, d, sq)
     y = d["result"].map({"H": 0, "D": 1, "A": 2}).to_numpy()
     dt = d["date"]
     train = ((dt >= TRAIN_START) & (dt < TRAIN_END)).to_numpy()
@@ -167,11 +206,15 @@ def run(refresh: bool = False) -> dict:
     elo_lr = LogisticRegression(max_iter=1000).fit(F_std.loc[train, ["elo_diff"]] / 400, y[train])
     P_elo = elo_lr.predict_proba(F_std[["elo_diff"]] / 400)
     base = np.tile(np.bincount(y[train], minlength=3) / train.sum(), (len(y), 1))
+    # Peeters (2018) replication: Transfermarkt squad value + home advantage, multinomial logistic
+    sv = F["sv26_diff"].to_numpy()
+    Zp = np.c_[np.nan_to_num(sv), np.isnan(sv), (~d["neutral"].astype(bool)).to_numpy()]
+    P_sv = LogisticRegression(max_iter=1000).fit(Zp[train], y[train]).predict_proba(Zp)
 
     def board(mask):
         out = []
         for name, PP in (("SportPulse International (LightGBM)", P), ("World Football Elo (standard, logistic)", P_elo),
-                         ("Base rates", base)):
+                         ("Squad value logistic (Peeters 2018)", P_sv), ("Base rates", base)):
             s = M.summary(PP[mask], y[mask]); s["model"] = name; out.append(s)
         return sorted(out, key=lambda r: r["rps"])
 
@@ -232,6 +275,8 @@ class InternationalPredictor:
                          for s in self.meta.get("seeds", [])] or [lgb.Booster(model_file=str(path / "international.lgb"))]
         self.ranking = pd.read_parquet(path / "ranking.parquet")
         self.by_team = self.ranking.set_index("team")
+        sp = path / "squad_values.parquet"
+        self.squads = pd.read_parquet(sp) if sp.exists() else None
 
     def _state(self, team) -> NationState:
         r = self.by_team.loc[team]
@@ -251,5 +296,9 @@ class InternationalPredictor:
         date = pd.Timestamp(date or pd.Timestamp.today().normalize())
         _, level = tournament_weight(tournament)
         row = pd.DataFrame([_row(self._state(home), self._state(away), neutral, level, date)])
-        z = np.mean([b.predict(row[self.meta["features"]], raw_score=True) for b in self.boosters], axis=0)
+        if self.squads is not None:
+            for k, val in squad_row(self.squads, home, away, date).items():
+                row[k] = val
+        X = row.reindex(columns=self.meta["features"])          # missing squad values -> NaN
+        z = np.mean([b.predict(X, raw_score=True) for b in self.boosters], axis=0)
         return softmax(z / self.meta["temperature"])[0], row.iloc[0].to_dict()
