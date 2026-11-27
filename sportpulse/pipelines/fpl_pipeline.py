@@ -134,7 +134,7 @@ def _top_xi(df: pd.DataFrame, col: str) -> float:
         lambda g: g.nlargest(11, col)["total_points"].mean(), include_groups=False).mean())
 
 
-def run(refresh: bool = False) -> dict:
+def run(refresh: bool = False, trials: int = 0) -> dict:
     t0 = time.time()
     OUT.mkdir(parents=True, exist_ok=True)
     log.info("Match engine for fixture context")
@@ -183,7 +183,13 @@ def run(refresh: bool = False) -> dict:
     # different distribution from the archived xP (non-zero for almost every player vs
     # ~15-50% in the archive), so it is reported as research and not deployed.
     stats_cols = [c for c in feature_cols if c != "fpl_xp"]
-    model = FPLForecaster(stats_cols).fit(F, full, train, valid)
+    from sportpulse.models.fpl_model import tune_head
+    head_params = {}
+    if trials:
+        for head in ("p_play", "pts_if_played", "points"):
+            head_params[head] = tune_head(F, full, train, valid, stats_cols, head, trials)
+            log.info("Tuned %s: %s", head, head_params[head])
+    model = FPLForecaster(stats_cols, head_params=head_params).fit(F, full, train, valid)
     w = model.fit_blend(F, full, valid)
     log.info("Direct/hurdle blend weight on direct head: %.2f", w)
     P = model.predict(F)
@@ -301,6 +307,7 @@ def run(refresh: bool = False) -> dict:
                  "train_rows": int(train.sum()), "valid_rows": int(valid.sum()), "test_rows": int(test.sum())},
         "leaderboard": leaderboard, "gw_spearman_active": gw_rho, "classifiers": cls,
         "by_season": by_season, "iters": model.iters, "blend_w_direct": model.blend_w,
+        "head_params": model.head_params,
         "importance": imp.round(4).to_dict(), "runtime_sec": round(time.time() - t0, 1),
     }
     (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str))

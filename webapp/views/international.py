@@ -24,7 +24,7 @@ m, tp = load()
 P = predictor()
 d = m["data"]
 lb = {r["model"]: r for r in m["competitive"]}
-mine, elo = lb["SportPulse International (LightGBM)"], lb["World Football Elo (logistic)"]
+mine, elo = lb["SportPulse International (LightGBM)"], lb["World Football Elo (standard, logistic)"]
 
 ui.repo_header("sportpulse", "national-team-forecaster", "globe", badge="● live",
                tag_items=[("task", "Tabular Classification"), ("lib", "LightGBM"), ("", "World Football Elo"),

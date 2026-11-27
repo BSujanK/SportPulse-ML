@@ -83,15 +83,15 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 
 | Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |
 |---|---|---|---|
-| SportPulse International (LightGBM) | 0.1680 | 61.3% | 0.1612 |
-| World Football Elo (logistic) | 0.1695 | 61.3% | 0.1598 |
+| SportPulse International (LightGBM) | 0.1673 | 61.8% | 0.1616 |
+| World Football Elo (standard, logistic) | 0.1695 | 61.3% | 0.1598 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
 
 ### Expected goals, StatsBomb open data (3,961 matches, 99,746 non-penalty shots)
 
 | Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |
 |---|---|---|---|---|
-| **SportPulse xG (LightGBM)** | 0.2619 | 0.8117 | 0.2527 | 0.0097 |
+| **SportPulse xG (LightGBM)** | 0.2606 | 0.8155 | 0.2514 | 0.0082 |
 | StatsBomb xG (commercial) | 0.2660 | 0.8048 | 0.2563 | 0.0104 |
 | Distance + angle logistic | 0.2952 | 0.7368 | — | — |
 <!-- RESULTS:END -->
@@ -171,19 +171,23 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
   higher in backtest, but is not deployed because the live `ep_next` feed is distributed differently.
 
 ### National-team forecaster
-* World Football Elo (eloratings.net): K = 60 World Cup, 50 continental finals, 40 qualifiers / Nations League,
-  30 other tournaments, 20 friendlies; goal-difference multiplier; +100 home advantage only at non-neutral venues
-  (a "neutral" match in a team's own country counts as home).
-* EWM form (all matches and competitive-only) → LightGBM multiclass + temperature calibration. Train 1994 →
-  2022, early-stop 2023 → mid-2024, test **mid-2024 → Nov 2026**.
+* World Football Elo (eloratings.net K-factors: World Cup 60, continental finals 50, qualifiers / Nations League 40,
+  other tournaments 30, friendlies 20; goal-difference multiplier). Home advantage and a K-factor scale are
+  grid-searched on validation (80 Elo points, K × 1.25). A "neutral" match in a team's own country counts as home.
+* Signals per team: short and long form, competitive-only form, **performance versus Elo expectation**, **schedule
+  strength** (opponents' Elo) and **rating momentum**, all leak-free in one chronological pass.
+* LightGBM multiclass (Optuna-tuned) + temperature calibration. Train 1994 → 2022, validate 2023 → mid-2024,
+  test **mid-2024 → Nov 2026**, benchmarked against standard World Football Elo.
 
 ### Analyst layer (StatsBomb open data)
 * **Ingest** streams each match's events and keeps compact tables: shots (with freeze-frame geometry), passes,
   carries, defensive actions and line-ups. Penalty shoot-outs are excluded, and full names are mapped to common
   names.
 * **xG**: LightGBM (Optuna-tuned) with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase,
-  the assisting pass, a men's/women's flag and freeze-frame features (defenders and teammates in the shooting cone, goalkeeper position and
-  distance, nearest defender, pressure count). Validated out-of-fold by match and on a temporal hold-out
+  the assisting pass, a men's/women's flag and freeze-frame geometry: defenders and teammates in the shooting
+  cone, **share of the goal mouth visible past the bodies in front of the ball**, blockers in the shot lane,
+  distance-weighted pressure, and the goalkeeper's position, distance and offset from the ball-to-goal line.
+  Validated out-of-fold by match and on a temporal hold-out
   (trained on matches before July 2022, tested on 2022–24 men's tournaments), benchmarked against StatsBomb's own xG.
 * **Expected threat** (Singh 2018), a 16 × 12 Markov grid from 3.5M passes and carries, gives each move's
   xT added.
@@ -208,6 +212,34 @@ team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Fores
   80% intervals. Temporal test on the FIFA 21 → 22 transition.
 * **Archetypes.** Quality-normalised style vectors → PCA(12) → full-covariance Gaussian mixture, k by BIC.
 * **Similarity.** Cosine similarity in standardised 40-dim attribute space with position, age and budget filters.
+
+## Experiment log
+
+Every candidate is selected on a validation window and adopted only if the gain holds on the untouched test window.
+
+| Model | Change | Validation | Test | Decision |
+|---|---|---|---|---|
+| xG | 18 → 80 StatsBomb competition-seasons (2× shots, men's + women's) | better | 0.2548 → 0.2534 | adopted |
+| xG | Optuna-tuned LightGBM | better | 0.2534 → 0.2527 | adopted |
+| xG | Freeze-frame geometry: visible goal share, lane blockers, weighted pressure, keeper lane offset | better | 0.2527 → 0.2516 | adopted |
+| xG | Re-tuned after the geometry features | better | → 0.2514 | adopted |
+| xG | Keeper reach / outfield-only coverage split | flat | worse | rejected |
+| xG | CatBoost, and a LightGBM + CatBoost blend | better | worse | rejected |
+| xG | Club vs international-tournament flag | better | worse | rejected |
+| National teams | Tuned home advantage and K-factor scale | better | 0.1680 → 0.1679 | adopted |
+| National teams | Performance-vs-expectation, schedule strength, momentum | better | → 0.1672 | adopted |
+| National teams | Optuna-tuned LightGBM | better | → 0.1673 | adopted (validation winner) |
+| Club matches | ClubElo cross-league ratings (verified pre-match) | flat | flat | rejected |
+| Club matches | 5-seed bagged ensemble | flat | flat | rejected |
+| Club matches | Log-linear blend with the Poisson-Dixon-Coles model | better | worse | rejected |
+| Over/under 2.5 | Booster initialised from the market price | better | worse | rejected |
+| PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
+| PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
+| PL players | Optuna-tuned heads | better | mixed | rejected |
+| Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
+
+The consistent pattern: forecasts priced by liquid betting markets (1X2, over/under) and FPL points (driven by
+unannounced line-ups) are at the ceiling of public data. Shot-level xG and national-team ratings still had headroom.
 
 ## The app (Hugging Face Hub style)
 

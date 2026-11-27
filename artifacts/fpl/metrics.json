@@ -154,6 +154,7 @@
     "pts_if_played": 223
   },
   "blend_w_direct": 0.9500000000000001,
+  "head_params": {},
   "importance": {
     "last_minutes": 0.3907,
     "total_points_r3": 0.1009,
@@ -186,5 +187,5 @@
     "ctx_team_ga": 0.0046,
     "apps_total": 0.0045
   },
-  "runtime_sec": 208.6
+  "runtime_sec": 241.3
 }

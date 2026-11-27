@@ -102,8 +102,50 @@ def freeze_frame_features(loc, ff) -> dict:
         "ff_def_within_5": float(sum(dist(f) < 5 for f in outfield)),
         "ff_nearest_def": min((dist(f) for f in outfield), default=np.nan),
     })
+    # Shot lane: distance of each opponent from the segment ball -> goal centre (only those in front of the ball)
+    gx, gy = GOAL_X, 40.0
+    vx, vy = gx - loc[0], gy - loc[1]
+    L2 = vx * vx + vy * vy or 1.0
+
+    def lane_dist(pt):
+        t = ((pt[0] - loc[0]) * vx + (pt[1] - loc[1]) * vy) / L2
+        if t <= 0 or t >= 1:
+            return np.inf
+        return math.hypot(loc[0] + t * vx - pt[0], loc[1] + t * vy - pt[1])
+    out["ff_lane_blockers"] = float(sum(lane_dist(f["location"]) < 1.0 for f in opp))
+    out["ff_pressure_w"] = float(sum(math.exp(-dist(f) / 2.0) for f in outfield))
+    # Fraction of the goal mouth covered by bodies (0.5 m radius each) as seen from the ball
+    ang = lambda p: math.atan2(p[1] - loc[1], p[0] - loc[0])  # noqa: E731
+    a0, a1 = sorted((ang((GOAL_X, POST_L)), ang((GOAL_X, POST_R))))
+    width = (a1 - a0) or 1e-6
+    def visible(bodies, radius=0.5):
+        covered = []
+        for f in bodies:
+            dd = dist(f)
+            if dd < radius or f["location"][0] < loc[0]:
+                continue
+            c, half = ang(f["location"]), math.asin(min(radius / dd, 1.0))
+            lo, hi = max(c - half, a0), min(c + half, a1)
+            if hi > lo:
+                covered.append((lo, hi))
+        covered.sort()
+        tot, cur = 0.0, None
+        for lo, hi in covered:
+            if cur is None or lo > cur[1]:
+                if cur:
+                    tot += cur[1] - cur[0]
+                cur = [lo, hi]
+            else:
+                cur[1] = max(cur[1], hi)
+        if cur:
+            tot += cur[1] - cur[0]
+        return 1.0 - min(tot / width, 1.0)
+    out["ff_goal_visible"] = visible(opp)
+    out["ff_goal_visible_outfield"] = visible(outfield)    # blockers only
+    out["ff_gk_cover"] = 1.0 - visible(gk, radius=1.5) if gk else 0.0  # keeper's reach (~1.5 m dive)
     if gk:
         g = gk[0]["location"]
+        out["ff_gk_lane_offset"] = min(lane_dist(g), 20.0) if np.isfinite(lane_dist(g)) else 20.0
         out.update({"ff_gk_dist_goal": math.dist(g, (GOAL_X, 40.0)), "ff_gk_dist_shooter": math.dist(g, loc),
                     "ff_gk_in_cone": float(_in_triangle(g, loc, a, b)), "ff_gk_off_line": GOAL_X - g[0]})
     return out

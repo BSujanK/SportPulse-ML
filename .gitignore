@@ -33,3 +33,4 @@ data/processed/
 # 71 MB booster; not needed at serve time (fair values are precomputed in
 # players_latest.parquet). Regenerate with: python -m sportpulse.train players
 artifacts/players/value.lgb
+catboost_info/

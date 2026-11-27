@@ -49,6 +49,35 @@ def add_targets(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def tune_head(F, Y, train, valid, features, name, trials=20, seed=SEED) -> dict:
+    """Optuna search for one head on the validation season (learning rate fixed for speed)."""
+    import optuna
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
+    col, obj = TARGETS[name]
+    X = F.reindex(columns=features).copy()
+    X["position"] = pd.Categorical(F["position"], categories=["GK", "DEF", "MID", "FWD"])
+    y = Y[col].to_numpy(float)
+    tr, va = train, valid
+    if name in CONDITIONAL:
+        cond = Y[CONDITIONAL[name]].to_numpy(float) == 1
+        tr, va = train & cond, valid & cond
+    dtr = lgb.Dataset(X[tr], y[tr], params={"feature_pre_filter": False}, free_raw_data=False)
+    dva = lgb.Dataset(X[va], y[va], reference=dtr, free_raw_data=False)
+    metric = "binary_logloss" if obj == "binary" else "l2"
+
+    def objective(t):
+        p = dict(PARAMS, objective=obj, learning_rate=0.06, feature_pre_filter=False,
+                 num_leaves=t.suggest_int("num_leaves", 15, 255, log=True),
+                 min_data_in_leaf=t.suggest_int("min_data_in_leaf", 50, 2000, log=True),
+                 feature_fraction=t.suggest_float("feature_fraction", 0.3, 1.0),
+                 lambda_l2=t.suggest_float("lambda_l2", 0.1, 100, log=True))
+        b = lgb.train(p, dtr, 3000, valid_sets=[dva], callbacks=[lgb.early_stopping(80, verbose=False)])
+        return b.best_score["valid_0"][metric]
+    st = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=seed))
+    st.optimize(objective, n_trials=trials)
+    return st.best_params
+
+
 def player_features(df: pd.DataFrame) -> pd.DataFrame:
     """Lagged rolling features. `df` must be sorted by (player_code, kickoff)."""
     g = df.groupby("player_code", sort=False)
@@ -91,6 +120,10 @@ class FPLForecaster:
     boosters: dict = field(default_factory=dict)
     targets: tuple = tuple(TARGETS)
     blend_w: float = 1.0
+    head_params: dict = field(default_factory=dict)   # per-head overrides (from tuning)
+
+    def _params(self, name, obj):
+        return dict(PARAMS, objective=obj, **self.head_params.get(name, {}))
 
     def _X(self, F: pd.DataFrame) -> pd.DataFrame:
         X = F.reindex(columns=self.features).copy()
@@ -101,7 +134,7 @@ class FPLForecaster:
         X = self._X(F)
         for name in self.targets:
             col, obj = TARGETS[name]
-            p = dict(PARAMS, objective=obj)
+            p = self._params(name, obj)
             y = Y[col].to_numpy(float)
             tr, va = train, valid
             if name in CONDITIONAL:
@@ -121,7 +154,7 @@ class FPLForecaster:
             col, obj = TARGETS[name]
             self.iters[name] = max(int(self.iters[name] * scale), 1)
             m = mask & (Y[CONDITIONAL[name]].to_numpy(float) == 1) if name in CONDITIONAL else mask
-            self.boosters[name] = lgb.train(dict(PARAMS, objective=obj),
+            self.boosters[name] = lgb.train(self._params(name, obj),
                                             lgb.Dataset(X[m], Y[col].to_numpy(float)[m]),
                                             self.iters[name])
         return self
@@ -157,11 +190,12 @@ class FPLForecaster:
         for n, b in self.boosters.items():
             b.save_model(str(path / f"fpl_{n}.lgb"))
         (path / "fpl_meta.json").write_text(json.dumps({"features": self.features, "iters": self.iters,
-                                                        "blend_w": self.blend_w}))
+                                                        "blend_w": self.blend_w, "head_params": self.head_params}))
 
     @classmethod
     def load(cls, path: Path):
         meta = json.loads((path / "fpl_meta.json").read_text())
-        m = cls(meta["features"], meta["iters"], blend_w=meta.get("blend_w", 1.0))
+        m = cls(meta["features"], meta["iters"], blend_w=meta.get("blend_w", 1.0),
+                head_params=meta.get("head_params", {}))
         m.boosters = {n: lgb.Booster(model_file=str(path / f"fpl_{n}.lgb")) for n in meta["iters"]}
         return m

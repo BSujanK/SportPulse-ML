@@ -15,11 +15,11 @@
   },
   "leaderboard": [
     {
-      "rps": 0.1681539563635952,
-      "log_loss": 0.8581926319468535,
-      "brier": 0.503354627202372,
-      "accuracy": 0.6082317073170732,
-      "ece": 0.02216003050000842,
+      "rps": 0.16771680250276363,
+      "log_loss": 0.8565250608540682,
+      "brier": 0.5021060480496408,
+      "accuracy": 0.6147103658536586,
+      "ece": 0.02463804023391275,
       "n": 2624,
       "model": "SportPulse International (LightGBM)"
     },
@@ -30,7 +30,7 @@
       "accuracy": 0.6067073170731707,
       "ece": 0.024730929492897288,
       "n": 2624,
-      "model": "World Football Elo (logistic)"
+      "model": "World Football Elo (standard, logistic)"
     },
     {
       "rps": 0.22957459676042077,
@@ -44,11 +44,11 @@
   ],
   "competitive": [
     {
-      "rps": 0.1680181557002451,
-      "log_loss": 0.8528095429603781,
-      "brier": 0.4994199722797096,
-      "accuracy": 0.6129970902036858,
-      "ece": 0.023660013714933315,
+      "rps": 0.1673017374194209,
+      "log_loss": 0.8500317349993406,
+      "brier": 0.4976796163552459,
+      "accuracy": 0.6183317167798255,
+      "ece": 0.025884531621567508,
       "n": 2062,
       "model": "SportPulse International (LightGBM)"
     },
@@ -59,7 +59,7 @@
       "accuracy": 0.6125121241513094,
       "ece": 0.02679496239378641,
       "n": 2062,
-      "model": "World Football Elo (logistic)"
+      "model": "World Football Elo (standard, logistic)"
     },
     {
       "rps": 0.232917653998958,
@@ -79,14 +79,14 @@
       "accuracy": 0.6538461538461539,
       "ece": 0.09654662338715037,
       "n": 104,
-      "model": "World Football Elo (logistic)"
+      "model": "World Football Elo (standard, logistic)"
     },
     {
-      "rps": 0.16119867820341297,
-      "log_loss": 0.8611168875481596,
-      "brier": 0.5042354784190247,
+      "rps": 0.1616435920062854,
+      "log_loss": 0.8615837708629422,
+      "brier": 0.5047710320939717,
       "accuracy": 0.6538461538461539,
-      "ece": 0.09480171216578055,
+      "ece": 0.11620118861887842,
       "n": 104,
       "model": "SportPulse International (LightGBM)"
     },
@@ -100,7 +100,7 @@
       "model": "Base rates"
     }
   ],
-  "iters": 342,
-  "temperature": 1.0803032027547457,
-  "runtime_sec": 650.4
+  "iters": 525,
+  "temperature": 1.0866931788011054,
+  "runtime_sec": 9.5
 }

@@ -24,16 +24,19 @@ CATS = {"body_part": ["Right Foot", "Left Foot", "Head", "Other"],
                          "From Goal Kick", "From Keeper", "From Kick Off", "Other"],
         "assist_type": ["pass", "cross", "through_ball", "cut_back"],
         "assist_height": ["Ground Pass", "Low Pass", "High Pass"]}
+INTERNATIONAL = ("World Cup", "Euro", "Copa America", "African Cup", "U20")
 NUM = ["female", "distance", "angle", "x", "y", "dy", "first_time", "one_on_one", "aerial_won", "open_goal",
        "follows_dribble", "under_pressure", "assisted", "assist_x",
        "ff_available", "ff_def_in_cone", "ff_mates_in_cone", "ff_def_within_2", "ff_def_within_5",
-       "ff_nearest_def", "ff_gk_dist_goal", "ff_gk_dist_shooter", "ff_gk_in_cone", "ff_gk_off_line"]
+       "ff_nearest_def", "ff_gk_dist_goal", "ff_gk_dist_shooter", "ff_gk_in_cone", "ff_gk_off_line",
+       "ff_lane_blockers", "ff_pressure_w", "ff_goal_visible", "ff_gk_lane_offset"]
 FEATURES = NUM + list(CATS)
 MONO = {"distance": -1, "angle": 1}
-# Optuna TPE (25 trials) on a held-out fifth of pre-2022 matches; the 2022-24 test set is not used.
-PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=11, min_data_in_leaf=35,
-              feature_fraction=0.75, bagging_fraction=0.8, bagging_freq=1, lambda_l2=2.29,
-              min_sum_hessian_in_leaf=1.35, verbose=-1, seed=SEED, num_threads=0,
+# Optuna TPE (25 trials, re-run after the freeze-frame geometry features were added) on a held-out
+# fifth of pre-2022 matches; the 2022-24 test set is not used.
+PARAMS = dict(objective="binary", learning_rate=0.03, num_leaves=10, min_data_in_leaf=74,
+              feature_fraction=0.66, bagging_fraction=0.8, bagging_freq=1, lambda_l2=2.49,
+              min_sum_hessian_in_leaf=0.0043, verbose=-1, seed=SEED, num_threads=0,
               monotone_constraints=[MONO.get(f, 0) for f in FEATURES], monotone_constraints_method="advanced")
 
 
@@ -42,6 +45,9 @@ def features(shots: pd.DataFrame) -> pd.DataFrame:
     for c in NUM:
         if c == "dy":
             X[c] = (shots["y"] - 40).abs()
+        elif c == "international":
+            comp = shots.get("competition", pd.Series("", index=shots.index)).astype(str)
+            X[c] = comp.str.contains("|".join(INTERNATIONAL)).astype(float)
         elif c == "female":
             X[c] = shots.get("gender", pd.Series("male", index=shots.index)).eq("female").astype(float)
         elif c == "assisted":

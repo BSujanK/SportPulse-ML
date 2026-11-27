@@ -31,7 +31,7 @@ def run(refresh: bool = False) -> dict:
     # Penalty shoot-outs (period 5) are not part of the match: drop them everywhere.
     shots, passes, carries, defense = (t[t.period < 5].reset_index(drop=True)
                                        for t in (shots, passes, carries, defense))
-    shots = shots.merge(matches[["match_id", "label", "date", "gender"]], on="match_id")
+    shots = shots.merge(matches[["match_id", "label", "date", "gender", "competition"]], on="match_id")
     log.info("xG model on %d shots", len(shots))
     booster, xg, xg_metrics = XG.train_and_evaluate(shots, RECENT)
     shots["xg"] = xg.to_numpy()

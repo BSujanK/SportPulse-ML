@@ -28,7 +28,9 @@ from sportpulse.models.match_outcome import fit_temperature, softmax
 log = logging.getLogger(__name__)
 URL = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
 OUT = config.ARTIFACTS_DIR / "international"
-HFA = 100.0
+# Grid-searched on the 2023 -> mid-2024 validation window (eloratings.net standard: HFA 100, K x1).
+HFA = 80.0
+K_SCALE = 1.25     # multiplier on the eloratings.net K-factors
 TRAIN_START, TRAIN_END, VALID_END = "1994-01-01", "2023-01-01", "2024-07-01"
 
 
@@ -55,6 +57,10 @@ class NationState:
     s: dict = field(default_factory=lambda: {k: EWM(0.25) for k in ("gf", "ga", "pts")})
     l: dict = field(default_factory=lambda: {k: EWM(0.06) for k in ("gf", "ga", "pts")})
     comp: dict = field(default_factory=lambda: {k: EWM(0.15) for k in ("gf", "ga")})  # competitive only
+    surprise_s: EWM = field(default_factory=lambda: EWM(0.25))   # result minus Elo expectation
+    surprise_l: EWM = field(default_factory=lambda: EWM(0.06))
+    opp_elo: EWM = field(default_factory=lambda: EWM(0.15))      # schedule strength
+    momentum: EWM = field(default_factory=lambda: EWM(0.2))      # recent Elo changes
 
 
 def _row(H: NationState, A: NationState, neutral: bool, level: int, date) -> dict:
@@ -67,6 +73,11 @@ def _row(H: NationState, A: NationState, neutral: bool, level: int, date) -> dic
         for k in ("gf", "ga", "pts"):
             r[f"{side}_s_{k}"], r[f"{side}_l_{k}"] = T.s[k].value, T.l[k].value
         r[f"{side}_c_gf"], r[f"{side}_c_ga"] = T.comp["gf"].value, T.comp["ga"].value
+    for side, T in (("h", H), ("a", A)):
+        r[f"{side}_surp_s"], r[f"{side}_surp_l"] = T.surprise_s.value, T.surprise_l.value
+        r[f"{side}_opp_elo"], r[f"{side}_mom"] = T.opp_elo.value, T.momentum.value
+    r["d_surp_l"] = r["h_surp_l"] - r["a_surp_l"]
+    r["d_opp_elo"] = r["h_opp_elo"] - r["a_opp_elo"]
     r["d_l_gd"] = (r["h_l_gf"] - r["h_l_ga"]) - (r["a_l_gf"] - r["a_l_ga"])
     r["d_s_pts"] = r["h_s_pts"] - r["a_s_pts"]
     return r
@@ -98,7 +109,10 @@ def build(d: pd.DataFrame):
         exp = 1 / (1 + 10 ** (-(H.elo - A.elo + hfa) / 400))
         res = 1.0 if gd > 0 else 0.5 if gd == 0 else 0.0
         mult = 1.0 if abs(gd) <= 1 else 1.5 if abs(gd) == 2 else (11 + abs(gd)) / 8
-        delta = k * mult * (res - exp)
+        delta = K_SCALE * k * mult * (res - exp)
+        for T, opp_elo, surprise, d_ in ((H, A.elo, res - exp, delta), (A, H.elo, exp - res, -delta)):
+            T.surprise_s.update(surprise); T.surprise_l.update(surprise)
+            T.opp_elo.update(opp_elo); T.momentum.update(d_)
         H.elo += delta
         A.elo -= delta
         for T, gf, ga in ((H, r.hg, r.ag), (A, r.ag, r.hg)):
@@ -112,9 +126,10 @@ def build(d: pd.DataFrame):
     return pd.DataFrame(rows), teams
 
 
-PARAMS = dict(objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=15,
-              min_data_in_leaf=200, feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1,
-              lambda_l2=10.0, verbose=-1, seed=config.SEED, num_threads=0)
+# Optuna TPE (30 trials) on validation log-loss.
+PARAMS = dict(objective="multiclass", num_class=3, learning_rate=0.02, num_leaves=5,
+              min_data_in_leaf=104, feature_fraction=0.65, bagging_fraction=0.8, bagging_freq=1,
+              lambda_l2=0.17, verbose=-1, seed=config.SEED, num_threads=0)
 
 
 def run(refresh: bool = False) -> dict:
@@ -137,13 +152,19 @@ def run(refresh: bool = False) -> dict:
     temp = fit_temperature(logits[valid], y[valid])
     P = softmax(logits / temp)
 
-    elo_lr = LogisticRegression(max_iter=1000).fit(F.loc[train, ["elo_diff"]] / 400, y[train])
-    P_elo = elo_lr.predict_proba(F[["elo_diff"]] / 400)
+    # Baseline: World Football Elo with the standard eloratings.net settings (not our tuned ones)
+    global HFA, K_SCALE
+    tuned = (HFA, K_SCALE)
+    HFA, K_SCALE = 100.0, 1.0
+    F_std, _ = build(d)
+    HFA, K_SCALE = tuned
+    elo_lr = LogisticRegression(max_iter=1000).fit(F_std.loc[train, ["elo_diff"]] / 400, y[train])
+    P_elo = elo_lr.predict_proba(F_std[["elo_diff"]] / 400)
     base = np.tile(np.bincount(y[train], minlength=3) / train.sum(), (len(y), 1))
 
     def board(mask):
         out = []
-        for name, PP in (("SportPulse International (LightGBM)", P), ("World Football Elo (logistic)", P_elo),
+        for name, PP in (("SportPulse International (LightGBM)", P), ("World Football Elo (standard, logistic)", P_elo),
                          ("Base rates", base)):
             s = M.summary(PP[mask], y[mask]); s["model"] = name; out.append(s)
         return sorted(out, key=lambda r: r["rps"])
@@ -189,6 +210,9 @@ def _state_dict(T: NationState) -> dict:
         d[f"l_{k}_num"], d[f"l_{k}_den"] = T.l[k].num, T.l[k].den
     for k in ("gf", "ga"):
         d[f"c_{k}_num"], d[f"c_{k}_den"] = T.comp[k].num, T.comp[k].den
+    for k in ("surprise_s", "surprise_l", "opp_elo", "momentum"):
+        e = getattr(T, k)
+        d[f"{k}_num"], d[f"{k}_den"] = e.num, e.den
     return d
 
 
@@ -207,6 +231,10 @@ class InternationalPredictor:
             T.l[k].num, T.l[k].den = r[f"state_l_{k}_num"], r[f"state_l_{k}_den"]
         for k in ("gf", "ga"):
             T.comp[k].num, T.comp[k].den = r[f"state_c_{k}_num"], r[f"state_c_{k}_den"]
+        for k in ("surprise_s", "surprise_l", "opp_elo", "momentum"):
+            e = getattr(T, k)
+            if f"state_{k}_num" in r:
+                e.num, e.den = r[f"state_{k}_num"], r[f"state_{k}_den"]
         return T
 
     def predict(self, home, away, neutral=True, tournament="FIFA World Cup", date=None):
