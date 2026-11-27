@@ -87,8 +87,10 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     test = (d >= config.VALID_END).to_numpy()
     divisions = sorted(matches["division"].unique())
 
-    all_cols = [c for c in feats.columns]
-    fund_cols = fundamental_features(all_cols)
+    # Club squad values help the fundamentals model on validation and test; in the market-residual
+    # booster they improve validation but not test, so that booster keeps its previous feature set.
+    fund_cols = fundamental_features(list(feats.columns))
+    all_cols = [c for c in feats.columns if c not in club_value.COLS]
 
     tuning = None
     model = MatchOutcomeModel(fund_cols, all_cols, divisions)
@@ -99,7 +101,7 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
     model.fit(feats, y, train, valid)
     log.info("Fitting goals model")
     # club values were validated for the outcome model only; the goals model keeps its feature set
-    goals = GoalsModel([c for c in all_cols if c not in club_value.COLS], divisions).fit(feats, hg, ag, train, valid)
+    goals = GoalsModel(all_cols, divisions).fit(feats, hg, ag, train, valid)
 
     # ── Evaluation on the held-out test window ──────────────────────────────
     pred = model.predict(feats)
@@ -199,6 +201,8 @@ def run(trials: int = 0, refresh: bool = False) -> dict:
                  "test": [config.VALID_END, str(d.max().date()), int(test.sum())],
                  "test_with_odds": int(tm.sum())},
         "leaderboard": leaderboard, "per_division": per_div, "over_under_25": ou,
+        "validation": {"fundamentals_rps": M.rps(pred["fundamentals"][valid & has_mkt], y[valid & has_mkt]),
+                       "final_rps": M.rps(pred["final"][valid & has_mkt], y[valid & has_mkt])},
         "goals": goal_mae, "betting_backtest": betting, "calibration": calib,
         "monthly": monthly, "tuning": tuning,
         "model": {"fund_iters": model.fund_iters, "resid_iters": model.resid_iters,
