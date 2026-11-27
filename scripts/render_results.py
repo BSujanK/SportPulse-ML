@@ -65,6 +65,11 @@ wc = {r["model"]: r for r in im["world_cup_2026"]}
 for r in im["competitive"]:
     lines.append(f"| {r['model']} | {r['rps']:.4f} | {r['accuracy'] * 100:.1f}% | "
                  f"{wc.get(r['model'], {}).get('rps', float('nan')):.4f} |")
+if im.get("competitive_covered"):
+    cc = im["competitive_covered"]
+    lines += ["", f"Competitive matches where both squads have Transfermarkt coverage (n = {cc[0]['n']:,}): "
+              + " · ".join(f"{r['model']} {r['rps']:.4f}" for r in cc)
+              + ". In the full-test rows above, the squad-value logistic gets a zero value difference for uncovered squads."]
 an = json.loads((ROOT / "artifacts/analyst/metrics.json").read_text())
 x = an["xg"]
 lines += ["", f"### Expected goals, StatsBomb open data ({x['matches']:,} matches, {x['non_penalty_shots']:,} non-penalty shots)",

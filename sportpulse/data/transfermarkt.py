@@ -248,3 +248,52 @@ def squad_values(start: str = "2005-01-01", end: str | None = None, covered_only
                                  "sv11": top11.reindex(top26.index).values,
                                  "svn": w.groupby("country").size().reindex(top26.index).values}))
     return pd.concat(out, ignore_index=True)
+
+
+FD_TO_TM = {"E0": "GB1", "SP1": "ES1", "I1": "IT1", "F1": "FR1", "T1": "TR1", "D1": "L1", "N1": "NL1", "P1": "PO1",
+            "B1": "BE1", "RUS": "RU1", "G1": "GR1", "SC0": "SC1", "DEN": "DK1", "USA": "MLS1", "POL": "PL1",
+            "BRA": "BRA1", "ROM": "RO1", "SUI": "C1", "ARG": "ARG1", "AUT": "A1", "NOR": "NO1", "SWE": "SE1",
+            "JAP": "JAP1", "MEX": "MEX1"}
+
+
+def club_id_map(matches: pd.DataFrame) -> dict:
+    """football-data (division|team) -> Transfermarkt club_id, by joining fixtures on date and score
+    within each league and taking each name's majority club (at least 5 joined fixtures, 80% agreement)."""
+    g = table("games")
+    g = g[g.competition_type.eq("domestic_league")].dropna(subset=["home_club_goals"])
+    out = {}
+    for div, comp in FD_TO_TM.items():
+        a = matches[matches.division == div][["date", "home", "away", "hg", "ag"]]
+        b = g[g.competition_id == comp][["date", "home_club_id", "away_club_id", "home_club_goals", "away_club_goals"]]
+        j = a.merge(b, left_on=["date", "hg", "ag"], right_on=["date", "home_club_goals", "away_club_goals"])
+        votes = pd.concat([j[["home", "home_club_id"]].set_axis(["team", "club"], axis=1),
+                           j[["away", "away_club_id"]].set_axis(["team", "club"], axis=1)])
+        for team, s in votes.groupby("team").club:
+            vc = s.value_counts()
+            if vc.iloc[0] >= 5 and vc.iloc[0] / vc.sum() >= 0.8:
+                out[f"{div}|{team}"] = int(vc.index[0])
+    return out
+
+
+def club_values(start: str = "2012-07-01", end: str | None = None) -> pd.DataFrame:
+    """Monthly club squad strength from players' latest valuations (previous 365 days, strictly before the
+    1st of the month) at clubs covered that season. cv18 = log summed value of the 18 most valuable,
+    cv11 = mean log value of the top 11."""
+    v = table("player_valuations")
+    g = table("games")
+    seasons = pd.concat([pd.DataFrame({"club": g.home_club_id, "season": _season(g.date)}),
+                         pd.DataFrame({"club": g.away_club_id, "season": _season(g.date)})])
+    covered = set(zip(seasons.club, seasons.season))
+    v = v[np.asarray([(c, s) in covered for c, s in zip(v.current_club_id, _season(v.date))])]
+    v = v.assign(lv=np.log(v.market_value_in_eur.clip(lower=10_000))).sort_values("date")
+    end = end or (v.date.max() + pd.offsets.MonthBegin(2)).strftime("%Y-%m-%d")
+    out = []
+    for m in pd.date_range(start, end, freq="MS"):
+        w = v[(v.date < m) & (v.date >= m - pd.Timedelta(days=365))].drop_duplicates("player_id", keep="last")
+        w = w.sort_values("lv", ascending=False)
+        w["rank"] = w.groupby("current_club_id").cumcount()
+        top18 = w[w["rank"] < 18].groupby("current_club_id").lv.apply(lambda s: np.log(np.exp(s).sum()))
+        top11 = w[w["rank"] < 11].groupby("current_club_id").lv.mean()
+        out.append(pd.DataFrame({"month": m, "club_id": top18.index.astype(int), "cv18": top18.values,
+                                 "cv11": top11.reindex(top18.index).values}))
+    return pd.concat(out, ignore_index=True)

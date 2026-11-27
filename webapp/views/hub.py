@@ -71,7 +71,7 @@ models = [
          meta=["Regression", f"best XI {flb['SportPulse LightGBM (production)']['top_xi']:.2f} vs xP "
                              f"{flb['FPL official xP']['top_xi']:.2f}"]),
     dict(title="national-team-forecaster", icon="globe", page=V + "international.py", link="National Teams",
-         desc="Tournament-weighted World Football Elo with a LightGBM layer, including World Cup 2026.",
+         desc="World Football Elo plus point-in-time Transfermarkt squad values; beats Elo at World Cup 2026.",
          meta=["Classification", f"RPS {ilb['SportPulse International (LightGBM)']['rps']:.4f}"]),
     dict(title="match-outcome-market-residual", icon="zap", page=V + "match_forecaster.py", link="Match Forecaster",
          desc="LightGBM boosted from the de-vigged bookmaker prior. The production 1X2 model.",

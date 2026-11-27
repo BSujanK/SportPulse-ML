@@ -93,8 +93,10 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 |---|---|---|---|
 | SportPulse International (LightGBM) | 0.1657 | 61.8% | 0.1548 |
 | World Football Elo (standard, logistic) | 0.1695 | 61.3% | 0.1598 |
-| Squad value logistic (Peeters 2018) | 0.1987 | 54.8% | 0.1720 |
+| Squad value logistic (Peeters 2018) | 0.1995 | 54.8% | 0.1733 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
+
+Competitive matches where both squads have Transfermarkt coverage (n = 1,413): SportPulse International (LightGBM) 0.1647 · World Football Elo (standard, logistic) 0.1686 · Squad value logistic (Peeters 2018) 0.1808 · Base rates 0.2299. In the full-test rows above, the squad-value logistic gets a zero value difference for uncovered squads.
 
 ### Expected goals, StatsBomb open data (3,961 matches, 99,746 non-penalty shots)
 

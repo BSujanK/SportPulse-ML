@@ -208,8 +208,9 @@ def run(refresh: bool = False) -> dict:
     base = np.tile(np.bincount(y[train], minlength=3) / train.sum(), (len(y), 1))
     # Peeters (2018) replication: Transfermarkt squad value + home advantage, multinomial logistic
     sv = F["sv26_diff"].to_numpy()
-    Zp = np.c_[np.nan_to_num(sv), np.isnan(sv), (~d["neutral"].astype(bool)).to_numpy()]
-    P_sv = LogisticRegression(max_iter=1000).fit(Zp[train], y[train]).predict_proba(Zp)
+    covered = np.isfinite(sv)
+    Zp = np.c_[np.nan_to_num(sv), (~d["neutral"].astype(bool)).to_numpy()]
+    P_sv = LogisticRegression(max_iter=1000).fit(Zp[train & covered], y[train & covered]).predict_proba(Zp)
 
     def board(mask):
         out = []
@@ -227,6 +228,8 @@ def run(refresh: bool = False) -> dict:
                  "world_cup_2026_matches": int(wc.sum())},
         "leaderboard": board(test), "competitive": board(comp),
         "world_cup_2026": board(wc) if wc.sum() else [],
+        # Peeters' setting: only matches where both squads have Transfermarkt coverage
+        "competitive_covered": board(comp & covered),
         "iters": iters, "temperature": temp,
     }
     # Production refit on everything from TRAIN_START

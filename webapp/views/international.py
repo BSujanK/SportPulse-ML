@@ -73,7 +73,10 @@ with left:
                                     "last": st.column_config.DateColumn("Last match")})
     with t2:
         for title, key in (("All test matches", "leaderboard"), ("Competitive only (no friendlies)", "competitive"),
-                           ("FIFA World Cup 2026", "world_cup_2026")):
+                           ("FIFA World Cup 2026", "world_cup_2026"),
+                           ("Competitive, both squads covered by Transfermarkt", "competitive_covered")):
+            if key not in m:
+                continue
             ui.section(title, f"n = {m[key][0]['n']:,}" if m[key] else "")
             st.dataframe(pd.DataFrame(m[key])[["model", "rps", "log_loss", "brier", "accuracy", "ece"]],
                          hide_index=True, width="stretch",
@@ -84,7 +87,9 @@ with left:
         ui.note(f"Chronological protocol: ratings run from {d['first']}; the model trains on 1994 → 2022, early-stops "
                 f"on 2023 → mid-2024 and is tested on <b>{d['test_window'][0]} → {d['test_window'][1]}</b> "
                 f"({d['test']:,} matches, including Euro 2024 qualifiers onward and the 2026 World Cup). On the 104 "
-                "World Cup matches the two models are statistically indistinguishable.")
+                "World Cup matches the gap to Elo is small relative to its noise. The squad-value logistic replicates Peeters "
+                "(2018); where a squad has no Transfermarkt coverage its value difference is set to zero, so read it "
+                "on the covered-squads table.")
     with t3:
         x = tp.sort_values("date", ascending=False).head(80).copy()
         x["Match"] = x.home_team + " – " + x.away_team
