@@ -27,7 +27,12 @@ SportPulse ML is an end-to-end machine-learning system:
 - An **analyst layer on StatsBomb event data** (3,961 men's and women's matches): an xG model that outperforms
   StatsBomb's commercial xG on unseen 2022–24 tournaments, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
   scouting notes, match reports with xG race, shot maps and pass networks.
-- Player valuation, development-forecast and style-archetype models (EA FIFA attribute data).
+- **Real-world player valuation on Transfermarkt data** (656k valuations, 1.9M appearances, 175k transfers to
+  July 2026): a transfer-fee model that beats the Transfermarkt value at predicting actual fees, a next-valuation
+  forecaster, and a performance-only fair-value model for scouting.
+- **VAEP action values** on 8M StatsBomb actions: every pass, carry, shot and tackle valued by its effect on scoring
+  and conceding chances, with player ratings per 90.
+- EA FIFA development-forecast and style-archetype models (FIFA 15–22 attributes).
 - A Hugging Face–style Streamlit UI in the original black and plasma-orange theme.
 
 | Data | Coverage | Freshness |
@@ -36,6 +41,7 @@ SportPulse ML is an end-to-end machine-learning system:
 | Fantasy Premier League (vaastav) | 260k player-fixtures, 2016-17 → 2026-27 | GW10, 2026-11-08 |
 | International results (martj42) | 49k internationals since 1872 | 2026-11-17 |
 | StatsBomb open data (events + freeze-frames) | 3,961 matches, 101k shots, 3.8M passes | Euro 2024 / Copa América 2024 / Bundesliga 2023-24 |
+| Transfermarkt (dcaribou/transfermarkt-datasets) | 656k valuations, 1.9M appearances, 175k transfers | 2026-07-06 |
 | EA FIFA 15–22 (sofifa) | 142k player-seasons | 2021-22 snapshot |
 
 <!-- RESULTS:START -->
@@ -136,6 +142,14 @@ with its published K-factors. SportPulse has competitive-match RPS 0.1672 vs 0.1
 
 **Fantasy points.** The reference is the official FPL expected-points (xP) forecast: MAE 0.998 vs 1.092, and the
 best-XI picks score 4.66 vs 3.41 points per player.
+
+**Transfer fees.** Transfermarkt's crowd-sourced market value is the standard reference for fees. On
+2,434 paid transfers from July 2025 to July 2026, the SportPulse fee model has median error
+39% against 50% for the Transfermarkt value (R² log 0.80 vs 0.67).
+
+**Action values.** VAEP is re-implemented from Decroos et al. (KDD 2019) and compared, on the same 2022–24
+tournament actions, against expected threat (Karun Singh's xT grid, logistically calibrated) and a location-only
+model.
 
 ## What changed from v1
 
@@ -246,6 +260,25 @@ than the club dataset, so Premier League ratings are current to the latest gamew
 team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Forest", "MGladbach" →
 "M'gladbach"), which previously split those clubs' rating histories.
 
+### Transfermarkt valuation models
+* **Leak-free as-of features.** For every (player, date) query, minutes, goals and assists over 180 / 365 / 730 days
+  and the career; top-5-league, UEFA and national-team minutes; club points and goal difference over the past year;
+  club and league value levels; and the valuation history. All come from rows dated strictly before the query.
+  One global cumulative sum per table makes 650k queries take about a second.
+* **Next valuation.** LightGBM (Huber loss) learns the change from the last value; persistence is the baseline.
+* **Fair value.** The same features without this player's valuation history, for players the market has not priced.
+* **Transfer fees.** Seller and buyer strength and league level are added; the Transfermarkt value is the baseline.
+* Chronological split: train 2013-07 → 2024-06, validate 2024-07 → 2025-06, test 2025-07 → 2026-07.
+* Clubs outside the dataset's leagues keep a stale league tag in the source, so current outputs use the latest
+  valuation's club and drop clubs with fewer than 15 known games in the past year.
+
+### VAEP action values
+* Passes (with set-piece types), carries, shots and on-ball defensive actions in one time-ordered stream per match.
+* Features: the action and the two before it in the acting team's frame (type, success, start and end location,
+  distance and angle to goal, time gaps, possession change), score difference and clock.
+* LightGBM estimates P(score) and P(concede) within the next 10 actions. Values are out-of-fold (2 folds by match).
+* Player ratings use minutes estimated from the event stream and line-ups.
+
 ### Player models (EA FIFA 15–22)
 * **Market value.** LightGBM on log €, 5-fold **GroupKFold by player** (a player's every season is held out
   together), plus a forward-edition stress test.
@@ -277,6 +310,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Club matches | 5-seed bagged ensemble | flat | flat | rejected |
 | Club matches | Log-linear blend with the Poisson-Dixon-Coles model | better | worse | rejected |
 | Over/under 2.5 | Booster initialised from the market price | better | worse | rejected |
+| Transfer fees | Squared-error loss, monotone value constraint, buyer-premium features, smaller trees | worse | mixed | rejected (Huber kept) |
+| Transfermarkt models | No minutes share when the club has under 15 known games | — | fees 0.535 → 0.537 MAE log | adopted (removes inflated shares for uncovered clubs) |
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |
 | PL players | Optuna-tuned heads | better | mixed | rejected |
@@ -302,7 +337,8 @@ unannounced line-ups) are at the ceiling of public data. Shot-level xG and natio
 | Match Analysis | xG race, shot map, pass networks and team stats for any of 3,961 matches; xG model card |
 | PL Player Forecaster | Next-gameweek projections for every Premier League player, a budget-constrained best XI, evaluation vs FPL xP |
 | National Teams | World Elo ranking (Nov 2026), neutral-venue fixture predictor, World Cup 2026 evaluation |
-| Player Scout | Fair value vs listed, rating forecast with interval, similar players, undervalued finder, rising stars |
+| Market Value | Transfermarkt value history and next-update forecast, performance fair value, undervalued finder, 2025-26 fee test |
+| EA FIFA Scout | EA FIFA rating forecast with interval, similar players, rising stars (FIFA 15–22) |
 | Archetypes | Interactive style map and data-derived role profiles |
 | Datasets | HF-style dataset viewer with per-column stats and histograms |
 
@@ -336,6 +372,9 @@ pytest -q
   event feed (StatsBomb, Opta, Wyscout) through the same ingest interface.
 * **Matches.** [xgabora/Club-Football-Match-Data-2000-2025](https://github.com/xgabora/Club-Football-Match-Data-2000-2025)
   (football-data.co.uk + clubelo), updated through 2026-09-03.
+* **Transfermarkt.** [dcaribou/transfermarkt-datasets](https://github.com/dcaribou/transfermarkt-datasets), a public
+  snapshot to 6 July 2026 that its author has stopped refreshing. Valuations are Transfermarkt's crowd-sourced
+  estimates; fees are as recorded there.
 * **Players.** [305kishan/FIFA](https://github.com/305kishan/FIFA): sofifa scrapes of EA FIFA 15–22. FIFA 22 is the
   newest player edition in the public sources this pipeline uses, so player outputs describe that snapshot plus one
   projected season. A newer sofifa export with the same schema can be dropped into `data/raw/`.
