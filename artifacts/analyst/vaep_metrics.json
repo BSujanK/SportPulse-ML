@@ -1,0 +1,66 @@
+{
+  "evaluation": {
+    "scores": {
+      "Base rate": {
+        "log_loss": 0.056336663563300714,
+        "brier": 0.009959052732530844,
+        "auc": 0.5
+      },
+      "xT (calibrated)": {
+        "log_loss": 0.04757263763476654,
+        "brier": 0.008852850461973651,
+        "auc": 0.7902384919892603
+      },
+      "Location-only LightGBM": {
+        "log_loss": 0.04423824128803365,
+        "brier": 0.008460305853694254,
+        "auc": 0.811745883118167
+      },
+      "SportPulse VAEP (LightGBM)": {
+        "log_loss": 0.04306746199735799,
+        "brier": 0.008384170410787076,
+        "auc": 0.8321579554492093
+      }
+    },
+    "concedes": {
+      "Base rate": {
+        "log_loss": 0.014334490407288554,
+        "brier": 0.0019762109990187223,
+        "auc": 0.5
+      },
+      "xT (calibrated)": {
+        "log_loss": 0.01433991114758484,
+        "brier": 0.001976236642589223,
+        "auc": 0.7399214807839081
+      },
+      "Location-only LightGBM": {
+        "log_loss": 0.011961998124551147,
+        "brier": 0.0018827766463950595,
+        "auc": 0.8203199217258973
+      },
+      "SportPulse VAEP (LightGBM)": {
+        "log_loss": 0.011748748190044215,
+        "brier": 0.0018797154266826435,
+        "auc": 0.8507054470077305
+      }
+    }
+  },
+  "iters": {
+    "scores": 173,
+    "concedes": 104
+  },
+  "actions": 8076145,
+  "test_actions": 572730,
+  "train_actions": 5708583,
+  "test_competitions": [
+    "1. Bundesliga 2023/2024",
+    "African Cup of Nations 2023",
+    "Copa America 2024",
+    "FIFA World Cup 2022",
+    "Ligue 1 2022/2023",
+    "Major League Soccer 2023",
+    "UEFA Euro 2024"
+  ],
+  "trained_before": "2022-07-01",
+  "runtime_sec": 440.2
+}

@@ -59,10 +59,12 @@ SportPulse ML is an end-to-end machine-learning system:
 
 **Over/Under 2.5** log-loss: model 0.6790 · market 0.6781 · base rate 0.6941.
 
-| Player model | Metric | SportPulse | Best baseline |
+EA FIFA models (FIFA 15–22 snapshot). The value model reproduces EA's own listed price from EA's own attributes, so its R² measures fidelity to EA, not to the transfer market (see Transfermarkt below).
+
+| EA FIFA model | Metric | SportPulse | Best baseline |
 |---|---|---|---|
-| Market value (unseen players, FIFA 22) | R² log € | **0.9993** | 0.9608 (linear) |
-| Market value | median abs. % error | **1.6%** | 15.1% |
+| EA value (unseen players, FIFA 22) | R² log € | **0.9993** | 0.9608 (linear) |
+| EA value | median abs. % error | **1.6%** | 15.1% |
 | Development (21→22) | MAE rating pts | **1.591** | 1.764 (potential-pull) · 1.805 (persistence) |
 | Development, U23 | MAE rating pts | **1.998** | 2.482 (persistence) |
 | Development | 80% interval coverage | 86.5% | — |
@@ -100,6 +102,34 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 | **SportPulse xG (LightGBM)** | 0.2606 | 0.8155 | 0.2514 | 0.0082 |
 | StatsBomb xG (commercial) | 0.2660 | 0.8048 | 0.2563 | 0.0104 |
 | Distance + angle logistic | 0.2952 | 0.7368 | — | — |
+
+### Transfermarkt valuation models (555,102 valuations of 41,078 players; test: 2025-07 → 2026-07)
+
+| Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |
+|---|---|---|---|---|---|
+| Transfer fee | **SportPulse fee model (LightGBM)** | **39.4%** | 0.537 | 0.800 | 33% |
+| Transfer fee | Transfermarkt value, calibrated | 45.8% | 0.666 | 0.683 | 30% |
+| Transfer fee | Transfermarkt value | 49.9% | 0.665 | 0.674 | 31% |
+| Next valuation | **SportPulse forecast (LightGBM)** | **13.3%** | 0.200 | 0.964 | 73% |
+| Next valuation | Persistence + age trend | 18.4% | 0.234 | 0.951 | 68% |
+| Next valuation | Persistence (last Transfermarkt value) | 16.7% | 0.232 | 0.942 | 67% |
+| Fair value, no TM input | **SportPulse fair value (LightGBM)** | **43.7%** | 0.587 | 0.763 | 30% |
+| Fair value, no TM input | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
+
+Direction of the next valuation change (moves over 5%): 79.9% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
+
+### VAEP action values (8.1M actions; trained before 2022-07-01, tested on 572,730 actions from the 2022–24 tournaments)
+
+| Target | Model | Log-loss ↓ | Brier ↓ | AUC ↑ |
+|---|---|---|---|---|
+| P(scores) | Base rate | 0.05634 | 0.009959 | 0.5000 |
+| P(scores) | xT (calibrated) | 0.04757 | 0.008853 | 0.7902 |
+| P(scores) | Location-only LightGBM | 0.04424 | 0.008460 | 0.8117 |
+| P(scores) | **SportPulse VAEP (LightGBM)** | 0.04307 | 0.008384 | 0.8322 |
+| P(concedes) | Base rate | 0.01433 | 0.001976 | 0.5000 |
+| P(concedes) | xT (calibrated) | 0.01434 | 0.001976 | 0.7399 |
+| P(concedes) | Location-only LightGBM | 0.01196 | 0.001883 | 0.8203 |
+| P(concedes) | **SportPulse VAEP (LightGBM)** | 0.01175 | 0.001880 | 0.8507 |
 <!-- RESULTS:END -->
 
 ## Comparison with published work
