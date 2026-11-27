@@ -87,6 +87,8 @@ EA FIFA models (FIFA 15–22 snapshot). The value model reproduces EA's own list
 
 P(60+ min) AUC 0.934 · P(goal) AUC 0.891 · P(assist) AUC 0.846.
 
+Ranking within each gameweek, among players FPL expects to play (xP > 0): Spearman 0.753 vs 0.645 for FPL xP; top-11 NDCG 0.506 vs 0.267. (Over all players, xP's Spearman looks higher only because ~80% of its values are tied at zero.)
+
 ### National-team forecaster (test: 2024-07-01 → 2026-11-17)
 
 | Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |
@@ -189,9 +191,11 @@ under 5-fold CV 0.2606 vs 0.2660.
 
 **Fantasy points.** The reference is the official FPL expected-points (xP) forecast, which SportPulse now uses as an
 input. Over the test window SportPulse has MAE 0.874 vs 1.092 and its best-XI picks score 6.56 vs 3.41 points per
-player (7.92 vs 4.96 in 2026-27 so far). Ranking *active* players within a gameweek, xP alone is still better
-(Spearman 0.720 vs 0.603), so treat SportPulse as the better points estimate and XI picker, not a strictly better
-ranking.
+player (7.92 vs 4.96 in 2026-27 so far). It also ranks better within each gameweek: among players FPL expects to
+play, Spearman 0.753 vs 0.645 and Kendall 0.613 vs 0.512, and its top-11 picks have NDCG 0.506 vs 0.267. An earlier
+version of this README said xP ranked better (Spearman 0.720 vs 0.603 over active players). That gap came from ties:
+about 80% of xP values are exactly 0, mostly for players who then score 0, and Spearman over everyone rewards those
+tied zeros.
 
 **Transfer fees.** Transfermarkt's crowd-sourced market value is the standard reference for fees. On
 2,434 paid transfers from July 2025 to July 2026, the SportPulse fee model has median error
@@ -412,6 +416,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Optuna-tuned heads | better | mixed | rejected |
 | PL players | FPL's pre-deadline xP as a feature (archive verified to equal the live feed; no outcome leak) | MAE 1.043 → 0.690, best XI 5.49 → 10.12 | MAE 0.998 → 0.874, best XI 4.66 → 6.56, within-GW Spearman 0.561 → 0.603 | adopted |
 | PL players | Ordering players by a blend of the prediction and FPL xP (weights 0.25 / 0.5 / 0.75) | within-GW Spearman 0.756 → 0.754 / 0.740 / 0.720 | 0.603 → 0.604 / 0.601 / 0.594 | rejected: validation prefers no blend |
+| PL players | Ranking metric audit: rank only players FPL expects to play, and NDCG@11 for top-11 picks | — | SportPulse 0.753 vs xP 0.645; NDCG@11 0.506 vs 0.267 | metric adopted: the all-player Spearman gap to xP was a tie artifact |
 | PL players | LambdaRank head per gameweek (for ordering players), alone or rank-blended | within-GW Spearman 0.574 → 0.553 / 0.567 | 0.561 → 0.542 / 0.555 | rejected: the gap to FPL xP (0.720) is team news, not the objective |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |

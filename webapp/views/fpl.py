@@ -138,9 +138,12 @@ with t_eval:
             "archived values match FPL's live feed exactly, so training and serving see the same feature; the archive's "
             "definition changed in 2025-26, and the test window uses the current one. "
             + (f"Without xP, best-XI points are {stats_only['top_xi']:.2f}. " if stats_only else "")
-            + "Per-gameweek Spearman among active players: "
-            + ", ".join(f"{ {'pred': 'SportPulse', 'pred_stats': 'statistics only', 'xP': 'FPL xP', 'form6': 'recent form'}.get(k, k)} "
-                        f"{v:.3f}" for k, v in m["gw_spearman_active"].items()) + ".")
+            + ("Ranking within each gameweek, among players FPL expects to play: "
+               + ", ".join(f"{ {'pred': 'SportPulse', 'pred_stats': 'statistics only', 'xP': 'FPL xP', 'form6': 'recent form'}.get(k, k)} "
+                           f"{v['spearman_xp_gt0']:.3f}" for k, v in m["ranking"].items())
+               + f" (Spearman); top-11 NDCG SportPulse {m['ranking']['pred']['ndcg11_all']:.3f} vs FPL xP "
+               f"{m['ranking']['xP']['ndcg11_all']:.3f}. Spearman over all players favours xP only because ~80% of its "
+               "values are tied at zero." if m.get("ranking") else ""))
 
 with t_card:
     kick = pd.Timestamp(d["latest_kickoff"])

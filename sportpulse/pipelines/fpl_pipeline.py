@@ -238,6 +238,24 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
         gw_rho[col] = float(active.groupby(["season", "round"]).apply(
             lambda g: spearmanr(g["total_points"], g[col]).statistic, include_groups=False).mean())
 
+    # Tie-robust ranking: ~80% of FPL's xP values are exactly 0 (players not expected to play, who mostly score 0),
+    # and Spearman over all players rewards those tied zeros. So also rank among players FPL expects to play,
+    # and score the top-11 picks by NDCG@11.
+    def _ndcg11(d, col):
+        disc = 1 / np.log2(np.arange(2, 13))
+        out = []
+        for _, g in d.groupby(["season", "round"]):
+            rel = np.clip(g["total_points"].to_numpy(float), 0, None)
+            top = rel[np.argsort(-g[col].to_numpy(float), kind="stable")[:11]]
+            ideal = np.sort(rel)[::-1][:11]
+            out.append(float((top * disc[:len(top)]).sum() / max((ideal * disc[:len(ideal)]).sum(), 1e-9)))
+        return float(np.mean(out))
+    plays = T[xm & (T["xP"] > 0).to_numpy()]
+    ranking = {col: {"spearman_xp_gt0": float(plays.groupby(["season", "round"]).apply(
+                         lambda g: spearmanr(g["total_points"], g[col]).statistic, include_groups=False).mean()),
+                     "ndcg11_all": _ndcg11(T[xm], col), "ndcg11_xp_gt0": _ndcg11(plays, col)}
+               for col in ("pred", "pred_stats", "xP", "form6")}
+
     cls = {}
     for k, col, base_col in (("p_60", "played60", "played60_r6"), ("p_goal", "scored", None),
                              ("p_assist", "assisted", None)):
@@ -308,7 +326,7 @@ def run(refresh: bool = False, trials: int = 0) -> dict:
                  "next_gameweek": int(nxt["round"].min()) if len(nxt) else None,
                  "context_join_coverage": ctx_cov,
                  "train_rows": int(train.sum()), "valid_rows": int(valid.sum()), "test_rows": int(test.sum())},
-        "leaderboard": leaderboard, "gw_spearman_active": gw_rho, "classifiers": cls,
+        "leaderboard": leaderboard, "gw_spearman_active": gw_rho, "ranking": ranking, "classifiers": cls,
         "by_season": by_season, "iters": model.iters, "blend_w_direct": model.blend_w,
         "head_params": model.head_params,
         "importance": imp.round(4).to_dict(), "runtime_sec": round(time.time() - t0, 1),

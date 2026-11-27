@@ -58,7 +58,14 @@ for r in fm["leaderboard"]:
     lines.append(f"| {b}{r['model']}{b} | {r['mae']:.3f} | {r['spearman']:.3f} | {b}{r['top_xi']:.2f}{b} |")
 c = fm["classifiers"]
 lines += ["", f"P(60+ min) AUC {c['p_60']['auc']:.3f} · P(goal) AUC {c['p_goal']['auc']:.3f} · "
-          f"P(assist) AUC {c['p_assist']['auc']:.3f}.", "",
+          f"P(assist) AUC {c['p_assist']['auc']:.3f}.", ""]
+if fm.get("ranking"):
+    rk = fm["ranking"]
+    lines += [f"Ranking within each gameweek, among players FPL expects to play (xP > 0): Spearman "
+              f"{rk['pred']['spearman_xp_gt0']:.3f} vs {rk['xP']['spearman_xp_gt0']:.3f} for FPL xP; top-11 NDCG "
+              f"{rk['pred']['ndcg11_all']:.3f} vs {rk['xP']['ndcg11_all']:.3f}. (Over all players, xP's Spearman looks "
+              f"higher only because ~80% of its values are tied at zero.)", ""]
+lines += [
           f"### National-team forecaster (test: {im['data']['test_window'][0]} → {im['data']['test_window'][1]})", "",
           "| Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |", "|---|---|---|---|"]
 wc = {r["model"]: r for r in im["world_cup_2026"]}
