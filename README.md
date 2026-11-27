@@ -282,6 +282,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | PL players | Optuna-tuned heads | better | mixed | rejected |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
+| Club matches | Asian-handicap price as a market feature | worse | 0.20335 → 0.20334 | rejected |
+| Club matches | Asian-handicap price + best-vs-average odds gaps | better | 0.20335 → 0.20342 | rejected |
 | National teams | Recency-weighted training | worse | — | rejected |
 | xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
 
