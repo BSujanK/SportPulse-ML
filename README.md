@@ -120,7 +120,7 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 | Next valuation | **SportPulse forecast (LightGBM)** | **12.9%** | 0.197 | 0.964 | 74% |
 | Next valuation | Persistence + age trend | 18.4% | 0.234 | 0.951 | 68% |
 | Next valuation | Persistence (last Transfermarkt value) | 16.7% | 0.232 | 0.942 | 67% |
-| Fair value, no player history | **SportPulse fair value (LightGBM)** | **43.7%** | 0.587 | 0.763 | 30% |
+| Fair value, no player history | **SportPulse fair value (LightGBM)** | **42.5%** | 0.582 | 0.764 | 31% |
 | Fair value, no player history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
 
 Direction of the next valuation change (moves over 5%): 80.1% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
@@ -352,7 +352,8 @@ with the same lower-case alphanumeric key becomes the most recent one ("Nottm Fo
   555k valuation queries take about a second.
 * **Next valuation.** LightGBM learns the change from the last value; persistence is the baseline. All three
   Transfermarkt models use Huber loss on log values.
-* **Fair value.** The same features without this player's valuation history. It still uses club and league value
+* **Fair value.** The same features without this player's valuation history, plus career and 730-day top-5-league,
+  UEFA and national-team minutes and goal involvements. It still uses club and league value
   levels, which are averages of Transfermarkt valuations (including the player's own earlier ones), so it is a
   performance-based value, not one with no Transfermarkt input at all.
 * **Transfer fees.** Seller and buyer strength and league level are added; the Transfermarkt value is the baseline.
@@ -410,6 +411,7 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | Transfer fees | Optuna-tuned LightGBM (40 trials) | 0.5486 → 0.5465 MAE log | 0.5375 → 0.5414 | rejected |
 | Next valuation | Optuna-tuned LightGBM (20 trials) | 0.1967 → 0.1948 MAE log | 0.1998 → 0.1971; median error 13.3% → 12.9% | adopted |
 | Fair value | Optuna-tuned LightGBM (20 trials) | 0.5474 → 0.5517 | 0.5874 → 0.5954 | rejected |
+| Fair value | Career and 730-day top-5-league, UEFA and national-team minutes and goal involvements | 0.5474 → 0.5343 MAE log | 0.5874 → 0.5821; median error 43.7% → 42.5% | adopted |
 | Transfermarkt models | No minutes share when the club has under 15 known games | — | fees 0.535 → 0.537 MAE log | adopted (removes inflated shares for uncovered clubs) |
 | PL players | Team and opponent rolling xG | flat | flat | kept (harmless) |
 | PL players | Hurdle heads: P(plays) × points if plays | better | MAE 0.999 → 0.998 | adopted (blend) |

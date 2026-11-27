@@ -26,6 +26,21 @@ CAT_COLS = ["position", "sub_position", "foot", "league"]
 FORECAST_PARAMS = dict(num_leaves=120, min_data_in_leaf=56, feature_fraction=0.735, lambda_l2=26.1, alpha=0.341)
 
 
+# Career and 730-day top-5-league, UEFA and national-team minutes and goal involvements. Validated for the
+# fair-value model only (validation 0.5474 -> 0.5343, test 0.5874 -> 0.5821 MAE log), so only it uses them.
+HISTORY = [f"{c}_{t}" for t in ("career", "730") for c in ("min_top5", "min_uefa", "min_national", "ga_top5", "ga_uefa")]
+
+
+def competition_history(A: T.AsOf, pid, dates) -> pd.DataFrame:
+    day = T._day(pd.Series(pd.to_datetime(dates)))
+    out = {}
+    for tag, w in (("career", None), ("730", 730)):
+        sx = A.apps.sums(np.asarray(pid, np.int64), day, w)
+        for c in ("min_top5", "min_uefa", "min_national", "ga_top5", "ga_uefa"):
+            out[f"{c}_{tag}"] = sx[c].to_numpy()
+    return pd.DataFrame(out)
+
+
 def _splits(dates: pd.Series):
     d = pd.to_datetime(dates)
     return (((d >= START) & (d < TRAIN_END)).to_numpy(), ((d >= TRAIN_END) & (d < VALID_END)).to_numpy(),
@@ -42,6 +57,7 @@ def valuation_frame(A: T.AsOf) -> pd.DataFrame:
     F = A.build(v.player_id.to_numpy(), v.date, club=v.current_club_id.fillna(-1).to_numpy(np.int64),
                 comp=v.player_club_domestic_competition_id)
     F["league"] = v.player_club_domestic_competition_id.astype("string").to_numpy()
+    F[HISTORY] = competition_history(A, v.player_id.to_numpy(), v.date).to_numpy()
     F["y"] = np.log(v.market_value_in_eur.clip(lower=10_000).to_numpy(float))
     F["date"], F["player_id"] = v.date.to_numpy(), v.player_id.to_numpy()
     return F
@@ -72,7 +88,7 @@ def run() -> dict:
     A = T.AsOf()
     log.info("Valuation frame")
     V = valuation_frame(A)
-    num = [c for c in V.columns if c not in CAT_COLS + ["y", "date", "player_id"]]
+    num = [c for c in V.columns if c not in CAT_COLS + HISTORY + ["y", "date", "player_id"]]
     tr, va, te = _splits(V["date"])
     res = {"data": {"valuations": int(len(V)), "players": int(V.player_id.nunique()),
                     "first": str(pd.Timestamp(V.date.min()).date()), "last": str(pd.Timestamp(V.date.max()).date()),
@@ -99,7 +115,7 @@ def run() -> dict:
     log.info("forecast %s", res["forecast"]["leaderboard"][0])
 
     # ── 2. Fair value, no Transfermarkt input for the player ───────────────────────────
-    perf = [c for c in num if c not in LAGS]
+    perf = [c for c in num if c not in LAGS] + HISTORY
     fv = ValueBooster(perf, CAT_COLS).fit(V, V.y, tr, va)
     p_fv = fv.predict(V)
     key = pd.DataFrame({"l": V.league.fillna("NA").astype(str), "p": V.position.fillna("NA").astype(str), "a": band})
@@ -162,6 +178,7 @@ def run() -> dict:
     C = A.build(cur.player_id.to_numpy(), [asof] * len(cur), club=cur.current_club_id.to_numpy(np.int64),
                 comp=cur.current_club_domestic_competition_id)
     C["league"] = cur.current_club_domestic_competition_id.astype("string").to_numpy()
+    C[HISTORY] = competition_history(A, cur.player_id.to_numpy(), [asof] * len(cur)).to_numpy()
     covered = (C["club_games_365"] >= 15).to_numpy()      # clubs whose games are in the dataset
     cur, C = cur[covered].reset_index(drop=True), C[covered].reset_index(drop=True)
     out = pd.DataFrame({

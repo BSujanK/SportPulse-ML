@@ -63,11 +63,11 @@
     "leaderboard": [
       {
         "model": "SportPulse fair value (LightGBM)",
-        "mae_log": 0.5873922831845889,
-        "median_ape": 0.4368069739598188,
-        "within_25pct": 0.3003701264788029,
-        "r2_log": 0.7626972859138013,
-        "spearman": 0.844142963581243,
+        "mae_log": 0.5820764463735214,
+        "median_ape": 0.4252879382096286,
+        "within_25pct": 0.3084765775789641,
+        "r2_log": 0.7639297151533572,
+        "spearman": 0.8440082535786241,
         "n": 44039
       },
       {
@@ -80,23 +80,23 @@
         "n": 44039
       }
     ],
-    "iters": 2877,
+    "iters": 7655,
     "importance": {
-      "club_value_index": 0.1681,
-      "apps_730": 0.1546,
-      "min_top5_365": 0.1156,
-      "league": 0.0838,
-      "minutes_730": 0.0748,
-      "age": 0.0645,
-      "apps_365": 0.0427,
+      "club_value_index": 0.1512,
+      "apps_730": 0.1309,
+      "league": 0.0807,
+      "min_top5_730": 0.0774,
+      "age": 0.0736,
+      "minutes_730": 0.0686,
+      "min_top5_365": 0.0431,
+      "apps_365": 0.0372,
       "minutes_share_365": 0.0348,
-      "age2": 0.0257,
-      "league_value_index": 0.0251,
-      "minutes_365": 0.0226,
-      "min_uefa_365": 0.0211,
-      "apps_career": 0.0168,
-      "minutes_career": 0.016,
-      "sub_position": 0.0153
+      "minutes_365": 0.0289,
+      "league_value_index": 0.0245,
+      "age2": 0.0205,
+      "min_uefa_730": 0.02,
+      "sub_position": 0.0191,
+      "height": 0.0172
     }
   },
   "fees": {
@@ -171,5 +171,5 @@
   },
   "asof": "2026-06-13",
   "current_players": 14858,
-  "runtime_sec": 450.5
+  "runtime_sec": 665.2
 }
