@@ -28,7 +28,8 @@ def main(argv=None) -> None:
                   f"ACC {row['accuracy']:.3f}")
     if args.target in ("all", "fpl"):
         from sportpulse.pipelines.fpl_pipeline import run as run_fpl
-        f = run_fpl(refresh=args.refresh, trials=args.trials)
+        # head tuning was tested and rejected (README experiment log), so --trials does not reach the FPL heads
+        f = run_fpl(refresh=args.refresh)
         for row in f["leaderboard"]:
             print(f"{row['model']:28s} MAE {row['mae']:.3f}  rho {row['spearman']:.3f}  top-XI {row['top_xi']:.2f}")
     if args.target in ("all", "international"):

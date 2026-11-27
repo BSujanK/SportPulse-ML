@@ -208,5 +208,5 @@ Penalties use their empirical conversion rate ({x['penalty_rate'] * 100:.1f}%).
     ro, rc = rec.get("SportPulse xG (LightGBM)", {}), rec.get("StatsBomb xG (commercial)", {})
     ui.note(f"StatsBomb's commercial xG is trained on far more proprietary data, which makes it a demanding benchmark. "
             f"Out-of-fold, SportPulse xG scores {o['log_loss']:.4f} log-loss against {c['log_loss']:.4f}"
-            + (f"; on the unseen 2022–24 tournaments {ro['log_loss']:.4f} against {rc['log_loss']:.4f} "
+            + (f"; on the 2022–24 hold-out {ro['log_loss']:.4f} against {rc['log_loss']:.4f} "
                f"(AUC {ro['auc']:.3f} vs {rc['auc']:.3f})." if ro else "."))

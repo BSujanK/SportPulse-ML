@@ -70,7 +70,7 @@ DIVISIONS: dict[str, tuple[str, str, int]] = {
 FEATURED_DIVISIONS = ["E0", "SP1", "D1", "I1", "F1", "E1", "N1", "P1"]
 
 # ── Temporal split (strictly chronological, no shuffling) ────────────────────
-TRAIN_END = "2023-07-01"   # train:  2000-07 .. 2023-06
+TRAIN_END = "2023-07-01"   # train:  2002-07 (BURN_IN in match_pipeline) .. 2023-06
 VALID_END = "2024-07-01"   # valid:  2023-07 .. 2024-06 (early stopping, calibration, blending)
 #                            test:   2024-07 .. latest (2024-25, 2025-26, 2026-27 so far)
 

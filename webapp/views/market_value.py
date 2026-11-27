@@ -29,7 +29,7 @@ ui.kpi_row([
            f"persistence {n_pe['median_ape'] * 100:.1f}%", "good"),
     ui.kpi("Direction of next change", f"{fc['direction_accuracy'] * 100:.0f}", "%",
            f"{fc['direction_n']:,} moves over 5%"),
-    ui.kpi("Fair value R² (no TM input)", f"{v_sp['r2_log']:.2f}", "", "performance, club, league, age"),
+    ui.kpi("Fair value R² (no player history)", f"{v_sp['r2_log']:.2f}", "", "performance, club, league, age"),
 ])
 
 t_player, t_under, t_fees, t_card = st.tabs([":material/person: Player valuation", ":material/savings: Undervalued finder",
@@ -151,7 +151,7 @@ with t_fees:
 with t_card:
     for title, board, note in [
         ("Next Transfermarkt valuation", fc, "test: 2025-07 → 2026-06 valuations"),
-        ("Fair value, no Transfermarkt input", fv, "test: 2025-07 → 2026-06 valuations"),
+        ("Fair value, without the player's valuation history", fv, "test: 2025-07 → 2026-06 valuations"),
         ("Transfer fees", fe, f"test: {f_sp['n']:,} paid transfers, 2025-07 → 2026-07")]:
         ui.section(title, count=f"{board['leaderboard'][0]['n']:,}", icon="scale")
         d = pd.DataFrame(board["leaderboard"])

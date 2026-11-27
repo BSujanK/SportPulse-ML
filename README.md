@@ -17,15 +17,15 @@ short_description: Real-data football forecasting that edges out the betting mar
 
 SportPulse ML is an end-to-end machine-learning system:
 
-- A leak-free feature engine and a hierarchical LightGBM forecaster that **edges past the bookmaker
-  market** on 17,000+ out-of-sample club matches (38 leagues).
+- A leak-free feature engine and a hierarchical LightGBM forecaster that **matches the bookmaker market**
+  on 17,000+ out-of-sample club matches in 38 leagues (a consistent but not statistically significant edge).
 - A Poisson / Dixon-Coles scoreline model.
 - A **Premier League player forecaster** (FPL points, P(60′), P(goal), P(assist)) that is live for the
   next gameweek of 2026-27.
 - A **national-team forecaster** (tournament-weighted World Football Elo + LightGBM) with data through
   November 2026, including the 2026 World Cup.
 - An **analyst layer on StatsBomb event data** (3,961 men's and women's matches): an xG model that outperforms
-  StatsBomb's commercial xG on unseen 2022–24 tournaments, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
+  StatsBomb's commercial xG on a 2022–24 hold-out, expected threat, team style profiles (PPDA, field tilt, press height, build-up), opponent reports with
   scouting notes, match reports with xG race, shot maps and pass networks.
 - **Real-world player valuation on Transfermarkt data** (656k valuations, 1.9M appearances, 175k transfers to
   July 2026): a transfer-fee model that beats the Transfermarkt value at predicting actual fees, a next-valuation
@@ -39,13 +39,13 @@ SportPulse ML is an end-to-end machine-learning system:
 |---|---|---|
 | Club matches + odds (football-data.co.uk via xgabora) | 238,934 matches, 38 leagues | 2026-09-03 (+ Premier League live to GW10, 2026-11-08) |
 | Fantasy Premier League (vaastav) | 260k player-fixtures, 2016-17 → 2026-27 | GW10, 2026-11-08 |
-| International results (martj42) | 49k internationals since 1872 | 2026-11-17 |
-| StatsBomb open data (events + freeze-frames) | 3,961 matches, 101k shots, 3.8M passes | Euro 2024 / Copa América 2024 / Bundesliga 2023-24 |
+| International results (martj42) | 50k internationals since 1872 | 2026-11-17 |
+| StatsBomb open data (events + freeze-frames) | 3,961 matches, 101k shots, 3.8M passes | latest match 2025-07-27 (Women's Euro 2025) |
 | Transfermarkt (dcaribou/transfermarkt-datasets) | 656k valuations, 1.9M appearances, 175k transfers | 2026-07-06 |
 | EA FIFA 15–22 (sofifa) | 142k player-seasons | 2021-22 snapshot |
 
 <!-- RESULTS:START -->
-### Results on the untouched test window (2024-07-01 → 2026-11-08, 17,054 matches, 38 leagues)
+### Results on the untouched test window (2024-07 → 2026-09: 17,054 matches with pre-match odds across all 38 leagues)
 
 | Model | RPS ↓ | Log-loss ↓ | Brier ↓ | Accuracy | ECE |
 |---|---|---|---|---|---|
@@ -100,13 +100,15 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 
 ### Expected goals, StatsBomb open data (3,961 matches, 99,746 non-penalty shots)
 
-| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |
+| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 hold-out log-loss ↓ | 2022–24 hold-out ECE ↓ |
 |---|---|---|---|---|
-| **SportPulse xG (LightGBM)** | 0.2606 | 0.8155 | 0.2514 | 0.0082 |
+| **SportPulse xG (LightGBM)** | 0.2606 | 0.8155 | 0.2525 | 0.0107 |
 | StatsBomb xG (commercial) | 0.2660 | 0.8048 | 0.2563 | 0.0104 |
 | Distance + angle logistic | 0.2952 | 0.7368 | — | — |
 
-### Transfermarkt valuation models (555,102 valuations of 41,078 players; test: 2025-07 → 2026-07)
+2022–24 hold-out: World Cup 2022, Euro 2024, Copa América 2024, AFCON 2023, Bundesliga 2023-24, Ligue 1 2022-23 and MLS 2023; trained only on matches before July 2022. The hold-out model chooses its own round count on pre-July-2022 matches; penalties use the empirical conversion rate (76.3%).
+
+### Transfermarkt valuation models (555,102 valuations of 41,078 players; test: valuations 2025-07 → 2026-06, fees 2025-07 → 2026-07)
 
 | Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |
 |---|---|---|---|---|---|
@@ -116,23 +118,23 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 | Next valuation | **SportPulse forecast (LightGBM)** | **13.3%** | 0.200 | 0.964 | 73% |
 | Next valuation | Persistence + age trend | 18.4% | 0.234 | 0.951 | 68% |
 | Next valuation | Persistence (last Transfermarkt value) | 16.7% | 0.232 | 0.942 | 67% |
-| Fair value, no TM input | **SportPulse fair value (LightGBM)** | **43.7%** | 0.587 | 0.763 | 30% |
-| Fair value, no TM input | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
+| Fair value, no player history | **SportPulse fair value (LightGBM)** | **43.7%** | 0.587 | 0.763 | 30% |
+| Fair value, no player history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
 
 Direction of the next valuation change (moves over 5%): 79.9% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
 
-### VAEP action values (8.1M actions; trained before 2022-07-01, tested on 572,730 actions from the 2022–24 tournaments)
+### VAEP action values (8.1M actions; trained before 2022-07-01, tested on 572,730 actions from the 2022–24 hold-out competitions)
 
 | Target | Model | Log-loss ↓ | Brier ↓ | AUC ↑ |
 |---|---|---|---|---|
 | P(scores) | Base rate | 0.05634 | 0.009959 | 0.5000 |
 | P(scores) | xT (calibrated) | 0.04757 | 0.008853 | 0.7902 |
 | P(scores) | Location-only LightGBM | 0.04424 | 0.008460 | 0.8117 |
-| P(scores) | **SportPulse VAEP (LightGBM)** | 0.04302 | 0.008394 | 0.8347 |
+| P(scores) | **SportPulse VAEP (LightGBM)** | 0.04301 | 0.008395 | 0.8353 |
 | P(concedes) | Base rate | 0.01433 | 0.001976 | 0.5000 |
 | P(concedes) | xT (calibrated) | 0.01434 | 0.001976 | 0.7399 |
 | P(concedes) | Location-only LightGBM | 0.01196 | 0.001883 | 0.8203 |
-| P(concedes) | **SportPulse VAEP (LightGBM)** | 0.01153 | 0.001848 | 0.8607 |
+| P(concedes) | **SportPulse VAEP (LightGBM)** | 0.01153 | 0.001848 | 0.8606 |
 <!-- RESULTS:END -->
 
 ## Comparison with published work
@@ -142,14 +144,16 @@ the league mix and the draw rate. So the strongest evidence below is **same data
 the published methods are re-implemented and scored on the SportPulse test window.
 
 **Club 1X2, same 16,843 test matches** (`python scripts/benchmark_dixon_coles.py`; Dixon-Coles refit monthly per
-league on the previous three seasons, time decay ξ chosen on the 2023-24 validation season):
+league on the previous 1,095 days, time decay ξ chosen on the 2023-24 validation season, ρ fitted in a second step
+after the Poisson rates; league-months with under 200 history matches are skipped, which leaves 211 of the 17,054
+matches unscored; promoted teams start at the bottom quarter's average rating):
 
 | Model | Source | RPS ↓ | Log-loss ↓ | Paired ΔRPS vs Dixon-Coles (z) |
 |---|---|---|---|---|
 | **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0082 (z = −15.4) |
 | Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0081 (z = −16.0) |
-| SportPulse Fundamentals, no odds | this repo | 0.2077 | 1.0150 | −0.0040 (z = −8.7) |
-| Pi-ratings + Elo logistic | Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
+| SportPulse Fundamentals, no odds (with club squad values) | this repo | 0.2077 | 1.0150 | −0.0040 (z = −8.7) |
+| Logistic on pi-rating goal difference + Elo | pi-ratings from Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
 | Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2117 | 1.0317 | — |
 
 (The pi-rating row comes from the full 17,054-match leaderboard above.) Without odds, SportPulse beats the classic
@@ -167,8 +171,8 @@ on a far larger, odds-aware test set. These numbers are not head-to-head.
 
 **Expected goals.** [Bajons & Harringer, *One xG model to rule them all?*](https://static.hudl.com/craft/performance-insights-research-stage/2025/One-xG-model-to-rule-them-all_-Robert-Bajons-Tobias-Harringer.pdf)
 benchmark Hudl-StatsBomb's commercial xG, the industry reference model. SportPulse compares against the same
-StatsBomb xG on the same shots: on the unseen 2022-24 tournaments it has log-loss 0.2514 vs 0.2563 and AUC 0.813 vs
-0.803, and under 5-fold CV 0.2606 vs 0.2660.
+StatsBomb xG on the same shots: on the 2022-24 hold-out it has log-loss 0.2525 vs 0.2563 and AUC 0.811 vs 0.803, and
+under 5-fold CV 0.2606 vs 0.2660.
 
 **National teams.** Two references, both re-implemented on the same matches:
 - **World Football Elo**, with its [published K-factors](https://www.eloratings.net/about). SportPulse has
@@ -184,15 +188,18 @@ StatsBomb xG on the same shots: on the unseen 2022-24 tournaments it has log-los
   nationality switchers are assigned their present country.
 
 **Fantasy points.** The reference is the official FPL expected-points (xP) forecast: MAE 0.998 vs 1.092, and the
-best-XI picks score 4.66 vs 3.41 points per player.
+best-XI picks score 4.66 vs 3.41 points per player over the test window. Two measures go the other way: ranking
+*active* players within a gameweek, xP is better (Spearman 0.720 vs 0.561), and in 2026-27 so far its best XI scores
+4.96 against 4.88. Treat SportPulse as the better points estimate overall, not as a strictly better ranking.
 
 **Transfer fees.** Transfermarkt's crowd-sourced market value is the standard reference for fees. On
 2,434 paid transfers from July 2025 to July 2026, the SportPulse fee model has median error
 39% against 50% for the Transfermarkt value (R² log 0.80 vs 0.67).
 
 **Action values.** VAEP is re-implemented from Decroos et al. (KDD 2019) and compared, on the same 2022–24
-tournament actions, against expected threat (Karun Singh's xT grid, logistically calibrated) and a location-only
-model.
+hold-out actions, against expected threat (Singh's method, with this repo's 16 × 12 grid, logistically calibrated on
+start xT, end xT × success and shot flags) and a LightGBM on action type, success and locations only. The xT grid is
+fitted on all matches, test matches included, which if anything favours the xT baseline.
 
 ## What changed from v1
 
@@ -203,37 +210,49 @@ The original app trained on partly synthetic data and had target leakage. v2 is 
 | Match "predictor" used **in-match** stats (shots, corners) to predict the result, so it only worked after the match ended | Only **pre-match** information: ratings, form, league context and pre-match odds, computed in one chronological pass |
 | Player "Performance" target was `Goals*6 + Assists*4 + …` with **randomly generated** goals and assists | Real targets: EA market value, next-season rating |
 | Missing columns filled with `np.random` | Missing stats stay NaN (handled natively by LightGBM); nothing is fabricated |
-| 1 EPL season, 500 players, random train/test split | 238,854 matches (38 leagues, 2000 → Sept 2026), 142,079 player-seasons, chronological / group-wise splits |
+| 1 EPL season, 500 players, random train/test split | 238,934 matches (38 leagues, 2000 → Nov 2026), 142,079 player-seasons, chronological / group-wise splits |
 | K-Means cluster names hard-coded to arbitrary cluster ids | GMM with BIC model selection; names derived from each centroid's distinguishing traits |
-| 1,900-line single file | Tested package: data → features → models → evaluation → serving → UI |
+| 1,900-line single file | Package with unit and artifact tests: data → features → models → evaluation → serving → UI |
 
 ## Architecture
 
 ```text
 sportpulse/
-├── config.py                 sources, leagues, chronological split dates
-├── data/loaders.py           download + cache + clean, team-name canonicalisation (no fake values)
+├── config.py                 sources, leagues, train / validation split dates (training start: BURN_IN)
+├── data/loaders.py           download + cache + clean (out-of-range odds and stats → NaN, duplicates dropped),
+│                             team-name canonicalisation (no fake values)
 ├── data/fpl.py               FPL player data + live Premier League results feed
 ├── data/statsbomb.py         StatsBomb event ingest → shots / passes / carries / defence / line-ups
+├── data/transfermarkt.py     Transfermarkt tables, leak-free as-of features, club map, squad values
 ├── analysis/xg.py            freeze-frame xG model + evaluation vs StatsBomb xG
 ├── analysis/analyst.py       expected threat, team styles, player output, pass networks, heat grids
-├── international.py          national-team Elo engine, model, predictor
+├── analysis/vaep.py          VAEP actions, features, labels and values
+├── international.py          national-team Elo engine, squad values, model, predictor
 ├── features/
-│   ├── engine.py             sequential leak-free engine: Elo, pi-ratings, EWM form, league context
-│   └── market.py             Shin de-vigging of bookmaker odds
+│   ├── engine.py             sequential leak-free engine: Elo, pi-ratings, EWM form, league context, market
+│   ├── market.py             Shin de-vigging (1X2); proportional de-vigging (O/U, Asian handicap)
+│   └── club_value.py         point-in-time Transfermarkt club squad values for club matches
 ├── models/
-│   ├── match_outcome.py      fundamentals LGBM → market-residual LGBM (init_score = log p_mkt) → temperature
-│   ├── goals.py              Poisson LGBM rates + Dixon-Coles ρ → scorelines, O/U, BTTS
-│   ├── players.py            value LGBM, quantile development LGBM, GMM archetypes, similarity
-│   └── fpl_model.py          per-fixture player forecaster (points + 3 probability heads)
+│   ├── match_outcome.py      fundamentals LGBM (+ a second one with club squad values for no-odds forecasts)
+│   │                         → market-residual LGBM (init_score = log p_mkt) → temperature
+│   ├── goals.py              Poisson LGBM rates (market-informed features) + Dixon-Coles ρ → scorelines, O/U, BTTS
+│   ├── players.py            EA value LGBM, quantile development LGBM, GMM archetypes, similarity
+│   ├── fpl_model.py          per-fixture player forecaster (six heads: points, P(60), P(goal), P(assist),
+│   │                         P(plays), points if plays)
+│   └── market_value.py       Transfermarkt valuation, fair-value and fee boosters
 ├── evaluation/metrics.py     RPS, log-loss, Brier, ECE, reliability curves, betting backtest
-├── pipelines/                match_pipeline.py, player_pipeline.py (train → evaluate → refit → artifacts)
+├── pipelines/                match, player, fpl, analyst, vaep and market_value pipelines
+│                             (train → evaluate → refit → artifacts)
 ├── inference.py              MatchPredictor: live fixture prediction from saved team states
-└── train.py                  CLI
-webapp/                       Streamlit UI (HF-style design system + 7 views)
+└── train.py                  CLI (targets: all, matches, players, fpl, international, analyst, vaep, value)
+scripts/                      render_results.py (regenerates the results block below), benchmark_dixon_coles.py,
+                              layout_audit.js (Playwright spacing audit; needs Node and Playwright)
+webapp/                       Streamlit UI: ui.py design system, state.py cached loaders, pitch.py, icons.py,
+                              12 views in webapp/views/
 artifacts/                    trained models, metrics, serving state (committed so the app runs immediately;
-                              the 71 MB value booster is regenerated by training, not committed)
-tests/                        unit tests (incl. leakage tests) + artifact integration tests
+                              the EA value booster and the three Transfermarkt boosters are regenerated by
+                              training, not committed — the app serves their precomputed outputs)
+tests/                        unit tests (incl. leakage tests) + artifact integration tests; no UI tests yet
 ```
 
 ### Match model
@@ -243,52 +262,65 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
    so training and serving features match.
    * Margin-of-victory Elo (per-country pools, tier-aware initialisation)
    * **pi-ratings** (Constantinou & Fenton 2013): separate home/away ratings on a goal-difference scale
-   * Missing-aware EWM form (short ≈ 8 matches, long ≈ 40) for goals, shots, shots on target, corners and points
-   * League scoring environment; rest days; experience
-   * Market: Shin de-vigged 1X2, best-price probabilities, overround, O/U 2.5, Asian-handicap line
-2. **Stage 1, Fundamentals.** LightGBM multiclass with no betting information (Optuna TPE-tuned). Used when no
-   odds exist.
+   * Missing-aware EWM form (α = 0.18 and 0.04, spans of roughly 10 and 49 matches) for goals, shots, shots on
+     target, corners and points, plus naive expected-goals form and home-minus-away differences
+   * League scoring environment; rest days; experience; month; league tier
+   * Market: Shin de-vigged 1X2, best-price probabilities, overround, O/U 2.5 and Asian-handicap line
+     (proportionally de-vigged), and a running market-implied team strength
+   * Transfermarkt club squad value (top-18 sum, top-11 mean), point-in-time by month, top flights from 2012-13
+2. **Stage 1, Fundamentals.** LightGBM multiclass with no betting information. Its parameters came from an Optuna TPE
+   search during development and are now fixed defaults; `--trials N` re-runs the search. A second fundamentals
+   booster adds the club squad values and serves the no-odds forecasts (the app default); the market-residual
+   prior keeps the first, because squad values did not improve the with-odds model.
 3. **Stage 2, Market residual.** LightGBM *boosted from the market*: `init_score = log p_market`, so trees only
    learn systematic corrections to an already efficient forecast.
 4. **Stage 3.** Temperature scaling on the validation season.
 5. **Goals.** Two Poisson LightGBMs for λ_home and λ_away, plus Dixon-Coles low-score dependence ρ fitted by MLE.
 
 **Protocol.** Train 2002-07 → 2023-06, validate 2023-24 (early stopping, tuning, calibration), **test 2024-07 →
-2026-09**, never touched until evaluation. Then refit on all data for serving.
+latest** (the scored matches with odds run to September 2026; live-feed Premier League results after that have no
+odds), never touched until evaluation. Then refit on all data from July 2002 for serving.
 
 ### Premier League player forecaster (FPL 2016-17 → 2026-27)
 * One row per player per fixture. All features are lagged: rolling 3 / 6 / EWM form for minutes, points,
   goals, assists, xG, xA, xGI, xGC, ICT, BPS, bonus, clean sheets, saves; per-90 rates; season-to-date;
   price, ownership and transfer momentum from the previous gameweek.
-* **Fixture context from the match engine:** team and opponent Elo, pi-rating goal difference, goals and shots
-  on target for/against, from the team's perspective.
-* Four LightGBM heads: points (L2), P(60+ min), P(goal), P(assist). Train 2016-17 → 2023-24, early-stop
-  2024-25, **test 2025-26 + 2026-27**. The production refit projects the next gameweek, scaled by FPL's
-  chance-of-playing flag.
+* **Fixture context from the match engine:** team and opponent Elo, pi-rating goal difference, goals for/against
+  and shots on target for, naive goals-form "xG", recent points and the Elo win probability, from the team's
+  perspective; plus team and opponent rolling FPL xG.
+* Six LightGBM heads: points (L2), P(60+ min), P(goal), P(assist), and a hurdle pair P(plays) × points if plays,
+  blended 0.95 / 0.05 with the direct points head. Train 2016-17 → 2023-24, early-stop 2024-25, **test 2025-26 +
+  2026-27**. The production refit projects the next gameweek, scaled by FPL's chance-of-playing flag (players
+  flagged injured, suspended or unavailable are projected at zero).
+* The leaderboard's best XI is the top 11 by prediction, with no position or budget limits; the app's best XI is a
+  greedy £85m squad with formation limits.
 * Benchmarked against FPL's own expected points (xP). A research variant that stacks archived xP scores
   higher in backtest, but is not deployed because the live `ep_next` feed is distributed differently.
 
 ### National-team forecaster
 * World Football Elo (eloratings.net K-factors: World Cup 60, continental finals 50, qualifiers / Nations League 40,
-  other tournaments 30, friendlies 20; goal-difference multiplier). Home advantage and a K-factor scale are
-  grid-searched on validation (80 Elo points, K × 1.25). A "neutral" match in a team's own country counts as home.
+  other tournaments 30, friendlies 20; goal-difference multiplier). Home advantage (80 Elo points) and a K-factor
+  scale (× 1.25) were chosen by a grid search on validation during development and are fixed in the code. A
+  "neutral" match in the listed home team's own country counts as home.
 * Signals per team: short and long form, competitive-only form, **performance versus Elo expectation**, **schedule
   strength** (opponents' Elo) and **rating momentum**, all leak-free in one chronological pass.
-* 5-seed bagged LightGBM multiclass (Optuna-tuned) + temperature calibration. Train 1994 → 2022, validate 2023 → mid-2024,
+* Transfermarkt squad values by citizenship (from 2005; earlier rows have none).
+* 5-seed bagged LightGBM multiclass (parameters from a development-time Optuna search, fixed in the code) +
+  temperature calibration. Train 1994 → 2022, validate 2023 → mid-2024,
   test **mid-2024 → Nov 2026**, benchmarked against standard World Football Elo.
 
 ### Analyst layer (StatsBomb open data)
 * **Ingest** streams each match's events and keeps compact tables: shots (with freeze-frame geometry), passes,
   carries, defensive actions and line-ups. Penalty shoot-outs are excluded, and full names are mapped to common
   names.
-* **xG**: LightGBM (Optuna-tuned) with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase,
+* **xG**: LightGBM (parameters from a development-time Optuna search, fixed in the code) with monotone constraints (distance ↓, angle ↑) on geometry, technique, phase,
   the assisting pass, a men's/women's flag and freeze-frame geometry: defenders and teammates in the shooting
   cone, **share of the goal mouth visible past the bodies in front of the ball**, blockers in the shot lane,
   distance-weighted pressure, and the goalkeeper's position, distance and offset from the ball-to-goal line.
   Validated out-of-fold by match and on a temporal hold-out
   (trained on matches before July 2022, tested on 2022–24 men's tournaments), benchmarked against StatsBomb's own xG.
-* **Expected threat** (Singh 2018), a 16 × 12 Markov grid from 3.5M passes and carries, gives each move's
-  xT added.
+* **Expected threat** (Singh 2018), a 16 × 12 Markov grid from all 6.8M passes and carries plus shots, gives each
+  successful move's xT added (failed moves get zero).
 * **Team style profiles** per competition, with percentiles: npxG for/against, possession, field tilt,
   PPDA, pressure height, high regains, progressive passes/carries, xT, crosses, long-ball share, set-piece xG,
   defensive-action height.
@@ -299,24 +331,32 @@ tests/                        unit tests (incl. leakage tests) + artifact integr
 
 ### Live data
 `load_matches()` appends finished current-season Premier League fixtures from the FPL feed when they are newer
-than the club dataset, so Premier League ratings are current to the latest gameweek. It also canonicalises
-team names that the source renamed mid-history ("Nottm Forest" → "Nott'm Forest", "MGladbach" →
-"M'gladbach"), which previously split those clubs' rating histories.
+than the club dataset (those rows carry results only, no stats or odds), so Premier League ratings are current to the
+latest gameweek. It also canonicalises team names the source renamed mid-history: within a country, every spelling
+with the same lower-case alphanumeric key becomes the most recent one ("Nottm Forest" → "Nott'm Forest",
+"MGladbach" → "M'gladbach").
 
 ### Transfermarkt valuation models
 * **Leak-free as-of features.** For every (player, date) query, minutes, goals and assists over 180 / 365 / 730 days
   and the career; top-5-league, UEFA and national-team minutes; club points and goal difference over the past year;
   club and league value levels; and the valuation history. All come from rows dated strictly before the query.
-  One global cumulative sum per table makes 650k queries take about a second.
-* **Next valuation.** LightGBM (Huber loss) learns the change from the last value; persistence is the baseline.
-* **Fair value.** The same features without this player's valuation history, for players the market has not priced.
+  The club and league of a valuation are those recorded with it. One global cumulative sum per table makes the
+  555k valuation queries take about a second.
+* **Next valuation.** LightGBM learns the change from the last value; persistence is the baseline. All three
+  Transfermarkt models use Huber loss on log values.
+* **Fair value.** The same features without this player's valuation history. It still uses club and league value
+  levels, which are averages of Transfermarkt valuations (including the player's own earlier ones), so it is a
+  performance-based value, not one with no Transfermarkt input at all.
 * **Transfer fees.** Seller and buyer strength and league level are added; the Transfermarkt value is the baseline.
-* Chronological split: train 2013-07 → 2024-06, validate 2024-07 → 2025-06, test 2025-07 → 2026-07.
+* Chronological split: train 2013-07 → 2024-06, validate 2024-07 → 2025-06, test 2025-07 → latest (valuations to
+  2026-06-12, fees to 2026-07).
 * Clubs outside the dataset's leagues keep a stale league tag in the source, so current outputs use the latest
   valuation's club and drop clubs with fewer than 15 known games in the past year.
 
 ### VAEP action values
-* Passes (with set-piece types), carries, shots and on-ball defensive actions in one time-ordered stream per match.
+* Passes (with set-piece types), carries, shots and on-ball defensive actions (tackles, interceptions, recoveries,
+  clearances, blocks, fouls; not pressures) in one time-ordered stream per match. Values reset at a new period and
+  after a goal.
 * Features: the action and the two before it in the acting team's frame (type, success, start and end location,
   distance and angle to goal, time gaps, possession change), the third previous action's type, team and timing,
   possession context (actions and seconds since it began, who started it, distance advanced since), score
@@ -373,6 +413,8 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | National teams | Recency-weighted training | worse | — | rejected |
 | xG | Recency-weighted training (half-life 15 / 8 / 5 / 3 years) | mixed | 0.2514 → 0.2517 | rejected |
 | VAEP | Third previous action + possession context | P(scores) 0.046735 → 0.046561, P(concedes) 0.013719 → 0.013512 | AUC 0.8322 → 0.8347 and 0.8507 → 0.8607 | adopted |
+| VAEP | Goal width in yards (8.0, was 7.32) for the angle feature | — | AUC 0.8347 → 0.8353, 0.8607 → 0.8606 | adopted (correctness fix) |
+| xG | Hold-out round count chosen on pre-July-2022 matches only (was CV including the hold-out) | — | 0.2514 → 0.2525 | adopted (removes a small leak) |
 
 The consistent pattern: forecasts priced by liquid betting markets (1X2, over/under) and FPL points (driven by
 unannounced line-ups) are at the ceiling of public data. Shot-level xG and national-team ratings still had headroom.
@@ -408,14 +450,17 @@ pip install -r requirements-dev.txt
 python -m sportpulse.train all --trials 30           # ~40 min on 4 CPU cores
 python -m sportpulse.train fpl --refresh             # pull the newest gameweek and re-project
 python -m sportpulse.train international --refresh   # pull the newest internationals
-python -m sportpulse.train analyst                   # StatsBomb ingest + xG + analyst aggregates (~3 min)
+python -m sportpulse.train analyst                   # StatsBomb ingest + xG + analyst aggregates (~2 min)
+python -m sportpulse.train vaep                      # VAEP action values and ratings (~10 min, after analyst)
+python -m sportpulse.train value                     # Transfermarkt models (~10 min)
+python -m sportpulse.train players                   # EA FIFA models
 python -m sportpulse.train matches --refresh         # pull the latest results and retrain the match models
 pytest -q
 ```
 
 **Deploy.** Either option works:
 * [Streamlit Community Cloud, one click](https://share.streamlit.io/deploy?repository=BSujanK/SportPulse-ML&branch=claude/tender-hypatia-qfphwp&mainModule=app.py)
-  (choose Python 3.12)
+  (choose Python 3.11, as CI and the devcontainer use)
 * Hugging Face Spaces: create a Streamlit Space and push this repo. The YAML header above configures it.
 
 ## Data & honesty notes

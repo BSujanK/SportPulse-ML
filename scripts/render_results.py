@@ -12,8 +12,8 @@ pm = json.loads((ROOT / "artifacts/players/metrics.json").read_text())
 d = mm["data"]
 
 lines = [
-    f"### Results on the untouched test window ({d['test'][0]} → {d['test'][1]}, "
-    f"{d['test_with_odds']:,} matches, {d['divisions']} leagues)",
+    f"### Results on the untouched test window ({d['test'][0][:7]} → {mm['monthly'][-1]['month']}: "
+    f"{d['test_with_odds']:,} matches with pre-match odds across all {d['divisions']} leagues)",
     "",
     "| Model | RPS ↓ | Log-loss ↓ | Brier ↓ | Accuracy | ECE |",
     "|---|---|---|---|---|---|",
@@ -71,23 +71,27 @@ if im.get("competitive_covered"):
               + " · ".join(f"{r['model']} {r['rps']:.4f}" for r in cc)
               + ". In the full-test rows above, the squad-value logistic gets a zero value difference for uncovered squads."]
 an = json.loads((ROOT / "artifacts/analyst/metrics.json").read_text())
+HOLDOUT = ("2022–24 hold-out: World Cup 2022, Euro 2024, Copa América 2024, AFCON 2023, Bundesliga 2023-24, "
+           "Ligue 1 2022-23 and MLS 2023; trained only on matches before July 2022.")
 x = an["xg"]
 lines += ["", f"### Expected goals, StatsBomb open data ({x['matches']:,} matches, {x['non_penalty_shots']:,} non-penalty shots)",
-          "", "| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 tournaments log-loss ↓ | 2022–24 ECE ↓ |", "|---|---|---|---|---|"]
+          "", "| Model | CV log-loss ↓ | CV AUC ↑ | 2022–24 hold-out log-loss ↓ | 2022–24 hold-out ECE ↓ |", "|---|---|---|---|---|"]
 tt = x.get("temporal_recent_test", {})
 for name, r in x["non_penalty_cv"].items():
     t = tt.get(name, {})
     b = "**" if name.startswith("SportPulse") else ""
     lines.append(f"| {b}{name}{b} | {r['log_loss']:.4f} | {r['auc']:.4f} | "
                  + (f"{t['log_loss']:.4f} | {t['ece']:.4f} |" if t else "— | — |"))
+lines += ["", HOLDOUT + f" The hold-out model chooses its own round count on pre-July-2022 matches; penalties use "
+          f"the empirical conversion rate ({x['penalty_rate'] * 100:.1f}%)."]
 mvp = ROOT / "artifacts/market_value/metrics.json"
 if mvp.exists():
     mv = json.loads(mvp.read_text())
     md = mv["data"]
     lines += ["", f"### Transfermarkt valuation models ({md['valuations']:,} valuations of {md['players']:,} players; "
-              "test: 2025-07 → 2026-07)", "",
+              "test: valuations 2025-07 → 2026-06, fees 2025-07 → 2026-07)", "",
               "| Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |", "|---|---|---|---|---|---|"]
-    for task, lbl in (("fees", "Transfer fee"), ("forecast", "Next valuation"), ("fair_value", "Fair value, no TM input")):
+    for task, lbl in (("fees", "Transfer fee"), ("forecast", "Next valuation"), ("fair_value", "Fair value, no player history")):
         for r in mv[task]["leaderboard"]:
             b = "**" if r["model"].startswith("SportPulse") else ""
             lines.append(f"| {lbl} | {b}{r['model']}{b} | {b}{r['median_ape'] * 100:.1f}%{b} | {r['mae_log']:.3f} | "
@@ -101,7 +105,7 @@ vp = ROOT / "artifacts/analyst/vaep_metrics.json"
 if vp.exists():
     vm = json.loads(vp.read_text())
     lines += ["", f"### VAEP action values ({vm['actions'] / 1e6:.1f}M actions; trained before {vm['trained_before']}, "
-              f"tested on {vm['test_actions']:,} actions from the 2022–24 tournaments)", "",
+              f"tested on {vm['test_actions']:,} actions from the 2022–24 hold-out competitions)", "",
               "| Target | Model | Log-loss ↓ | Brier ↓ | AUC ↑ |", "|---|---|---|---|---|"]
     for k, rows in vm["evaluation"].items():
         for mdl, r in rows.items():

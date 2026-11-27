@@ -13,8 +13,10 @@ from sportpulse.models.players import similarity_space
 
 
 def artifacts_ready() -> bool:
-    return ((config.MATCH_ARTIFACTS / "metrics.json").exists()
-            and (config.PLAYER_ARTIFACTS / "metrics.json").exists())
+    """Every metrics file a page reads unconditionally must exist, or the app shows the 'train first' message."""
+    need = [config.MATCH_ARTIFACTS, config.PLAYER_ARTIFACTS, config.ARTIFACTS_DIR / "fpl",
+            config.ARTIFACTS_DIR / "international", config.ARTIFACTS_DIR / "analyst", config.ARTIFACTS_DIR / "market_value"]
+    return all((d / "metrics.json").exists() for d in need)
 
 
 @st.cache_resource(show_spinner="Loading match models…")

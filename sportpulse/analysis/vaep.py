@@ -17,6 +17,7 @@ import lightgbm as lgb
 from sportpulse.config import SEED
 
 HORIZON = 10
+GOAL_W = 8.0   # goal width in StatsBomb yards (7.32 m)
 TYPES = ["pass", "cross", "throw_in", "freekick_pass", "corner", "goalkick", "kickoff", "carry", "shot",
          "shot_penalty", "shot_freekick", "tackle", "interception", "recovery", "clearance", "block", "foul"]
 DEF_MAP = {"Tackle": "tackle", "Interception": "interception", "Ball Recovery": "recovery",
@@ -60,7 +61,7 @@ def build_actions(matches, passes, carries, shots, defense) -> pd.DataFrame:
 
 def _goal_angle(x, y):
     dx, dy = 120 - x, np.abs(40 - y)
-    return np.hypot(dx, dy), np.arctan2(7.32 * dx, dx ** 2 + dy ** 2 - (7.32 / 2) ** 2)
+    return np.hypot(dx, dy), np.arctan2(GOAL_W * dx, dx ** 2 + dy ** 2 - (GOAL_W / 2) ** 2)
 
 
 def features_labels(a: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray, np.ndarray]:

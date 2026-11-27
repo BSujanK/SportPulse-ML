@@ -129,13 +129,20 @@ def train_and_evaluate(shots: pd.DataFrame, recent_labels: set[str]) -> tuple[lg
     recent = shots.loc[np_mask, "label"].isin(recent_labels).to_numpy()
     older = (shots.loc[np_mask, "date"] < "2022-07-01").to_numpy() if "date" in shots else ~recent
     if recent.any() and older.any():
-        dtr = lgb.Dataset(Xn[older], yn[older],
-                          weight=recency_weights(shots.loc[np_mask][older], ref="2022-07-01"))
-        b = lgb.train(PARAMS, dtr, n_iter)
-        pr = b.predict(Xn[recent])
+        # The round count must not come from the CV above, whose folds include the hold-out shots:
+        # early-stop on a held-back eighth of the pre-July-2022 matches instead.
+        og = groups[older]
+        rng = np.random.default_rng(SEED)
+        held = np.isin(og, rng.choice(np.unique(og), len(np.unique(og)) // 8, replace=False))
+        w_old = recency_weights(shots.loc[np_mask][older], ref="2022-07-01")
+        Xo, yo = Xn[older], yn[older]
+        dtr = lgb.Dataset(Xo[~held], yo[~held], weight=w_old[~held])
+        b = lgb.train(PARAMS, dtr, 5000, valid_sets=[lgb.Dataset(Xo[held], yo[held], reference=dtr)],
+                      callbacks=[lgb.early_stopping(150, verbose=False)])
+        pr = b.predict(Xn[recent], num_iteration=b.best_iteration)
         okr = recent & ok
         metrics["temporal_recent_test"] = {
-            "SportPulse xG (LightGBM)": _metrics(yn[okr], b.predict(Xn[okr])),
+            "SportPulse xG (LightGBM)": _metrics(yn[okr], b.predict(Xn[okr], num_iteration=b.best_iteration)),
             "StatsBomb xG (commercial)": _metrics(yn[okr], sb[okr]),
             "n": int(okr.sum()), "competitions": sorted(recent_labels), "trained_before": "2022-07-01"}
         del pr

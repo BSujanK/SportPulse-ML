@@ -71,7 +71,8 @@ with t1:
                                           f"min leaf {fp['min_data_in_leaf']}"),
                        ("Market-residual booster", f"{mm['model']['resid_iters']} trees"),
                        ("Temperature (fund. / final)", f"{mm['model']['t_fund']:.3f} / {mm['model']['t_final']:.3f}"),
-                       ("Hyper-parameter search", "Optuna TPE, 30 trials, 2023-24 log-loss")]), unsafe_allow_html=True)
+                       ("Hyper-parameter search", "Optuna TPE on 2023-24 log-loss during development; fixed defaults since"
+                                                  if mm.get("tuning") is None else f"Optuna TPE, {mm['tuning']['trials']} trials, 2023-24 log-loss")]), unsafe_allow_html=True)
 
 with t2:
     pdv = pd.DataFrame(mm["per_division"])

@@ -45,7 +45,8 @@ def test_reported_metrics_beat_baselines():
     m = json.loads((config.MATCH_ARTIFACTS / "metrics.json").read_text())
     lb = {r["model"]: r for r in m["leaderboard"]}
     prod = lb["SportPulse Market-Residual (production)"]
-    assert prod["rps"] <= lb["Bookmaker market (Shin)"]["rps"] + 5e-4
+    # the README claims the production model edges past the market on the test window
+    assert prod["rps"] < lb["Bookmaker market (Shin)"]["rps"]
     assert lb["SportPulse Fundamentals (no odds)"]["rps"] < lb["Elo logistic"]["rps"]
     assert prod["ece"] < 0.03
     assert m["data"]["last_date"] >= "2025-01-01"   # trained on recent data

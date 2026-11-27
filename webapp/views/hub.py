@@ -59,7 +59,7 @@ axg = am["xg"]["non_penalty_cv"]
 V = "webapp/views/"
 models = [
     dict(title="expected-goals-freeze-frame", icon="crosshair", page=V + "match_analysis.py", link="Match Analysis",
-         desc="Shot-level xG with freeze-frame geometry; beats StatsBomb's commercial xG on unseen 2022–24 tournaments.",
+         desc="Shot-level xG with freeze-frame geometry; beats StatsBomb's commercial xG on a 2022–24 hold-out.",
          meta=["Binary classification", f"log-loss {axg['SportPulse xG (LightGBM)']['log_loss']:.4f}"]),
     *([dict(title="vaep-action-values", icon="activity", page=V + "match_analysis.py", link="Match Analysis",
             desc="Values every pass, carry, shot and tackle by the change in scoring minus conceding chances.",

@@ -129,12 +129,12 @@ def team_match_stats(matches, shots, passes, defense, carries) -> pd.DataFrame:
 PROFILE_METRICS = {
     "npxg": ("Non-penalty xG", True), "npxg_against": ("npxG conceded", False),
     "possession": ("Possession", True), "field_tilt": ("Field tilt", True),
-    "ppda": ("PPDA (pressing intensity)", False), "press_height": ("Pressure height (m)", True),
+    "ppda": ("PPDA (pressing intensity)", False), "press_height": ("Pressure height (yd)", True),
     "high_regains": ("High regains", True), "prog_passes": ("Progressive passes", True),
     "prog_carries": ("Progressive carries", True), "xt": ("Expected threat created", True),
     "crosses": ("Crosses", True), "long_ball_share": ("Long-ball share (build-up)", True),
     "sp_xg": ("Set-piece xG", True), "pass_completion": ("Pass completion", True),
-    "def_line_height": ("Defensive action height (m)", True),
+    "def_line_height": ("Defensive action height (yd)", True),
 }
 
 

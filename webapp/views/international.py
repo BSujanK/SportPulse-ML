@@ -52,7 +52,7 @@ with right:
             st.markdown(ui.label_bars([(f"{h} win", p[0], ui.WIN), ("Draw", p[1], ui.DRAW),
                                        (f"{a} win", p[2], ui.LOSS)]), unsafe_allow_html=True)
             st.caption(f"Elo {f['elo_h']:.0f} vs {f['elo_a']:.0f}"
-                       f"{'' if neutral else ' (+100 home advantage)'} · fair odds "
+                       f"{'' if neutral else ' (+' + format(P.meta.get('hfa', 80), '.0f') + ' Elo home advantage)'} · fair odds "
                        f"{1 / p[0]:.2f} / {1 / p[1]:.2f} / {1 / p[2]:.2f}")
         else:
             st.warning("Pick two different teams.")
@@ -86,7 +86,7 @@ with left:
                               "ece": "ECE ↓"}.items()})
         ui.note(f"Chronological protocol: ratings run from {d['first']}; the model trains on 1994 → 2022, early-stops "
                 f"on 2023 → mid-2024 and is tested on <b>{d['test_window'][0]} → {d['test_window'][1]}</b> "
-                f"({d['test']:,} matches, including Euro 2024 qualifiers onward and the 2026 World Cup). On the 104 "
+                f"({d['test']:,} matches, from July 2024 onward, including the 2026 World Cup). On the 104 "
                 "World Cup matches the gap to Elo is small relative to its noise. The squad-value logistic replicates Peeters "
                 "(2018); where a squad has no Transfermarkt coverage its value difference is set to zero, so read it "
                 "on the covered-squads table.")
