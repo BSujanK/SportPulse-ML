@@ -63,11 +63,11 @@
     "leaderboard": [
       {
         "model": "SportPulse fair value (LightGBM)",
-        "mae_log": 0.5820764463735214,
+        "mae_log": 0.5820775590933963,
         "median_ape": 0.4252879382096286,
         "within_25pct": 0.3084765775789641,
-        "r2_log": 0.7639297151533572,
-        "spearman": 0.8440082535786241,
+        "r2_log": 0.7639289433626417,
+        "spearman": 0.8440082349810439,
         "n": 44039
       },
       {
@@ -103,11 +103,11 @@
     "leaderboard": [
       {
         "model": "SportPulse fee model (LightGBM)",
-        "mae_log": 0.5374623973296507,
-        "median_ape": 0.3937463731241227,
-        "within_25pct": 0.3299096138044371,
-        "r2_log": 0.8000422040709991,
-        "spearman": 0.895613141729538,
+        "mae_log": 0.5692840490278495,
+        "median_ape": 0.41371849561525514,
+        "within_25pct": 0.323746918652424,
+        "r2_log": 0.7667687056262034,
+        "spearman": 0.8782937054853225,
         "n": 2434
       },
       {
@@ -131,32 +131,32 @@
     ],
     "n_train": 11829,
     "n_valid": 2308,
-    "iters": 665,
+    "iters": 464,
     "importance": {
-      "prev_log_value": 0.4933,
-      "peak_log_value": 0.106,
-      "to_league": 0.0733,
-      "to_value_index": 0.0502,
-      "league": 0.0254,
-      "age": 0.025,
-      "club_value_index": 0.0244,
-      "sub_position": 0.0146,
-      "days_since_value": 0.0137,
-      "to_league_value_index": 0.0135,
-      "below_peak": 0.0126,
-      "prev_change": 0.0115,
-      "change_1y": 0.0113,
-      "to_league_ppg_365": 0.0107,
-      "league_value_index": 0.0102
+      "prev_log_value": 0.5304,
+      "peak_log_value": 0.1129,
+      "to_value_index": 0.0565,
+      "to_league": 0.0541,
+      "club_value_index": 0.0282,
+      "age": 0.0202,
+      "to_league_value_index": 0.0178,
+      "sub_position": 0.0136,
+      "days_since_value": 0.0134,
+      "n_valuations": 0.0124,
+      "below_peak": 0.0121,
+      "change_1y": 0.0116,
+      "prev_change": 0.0113,
+      "league_value_index": 0.0088,
+      "age2": 0.0084
     },
     "big_moves": {
       "n": 172,
       "SportPulse": {
-        "mae_log": 0.30529906290435566,
-        "median_ape": 0.19031293270511562,
-        "within_25pct": 0.5930232558139535,
-        "r2_log": -0.11997677518957395,
-        "spearman": 0.721468349930825,
+        "mae_log": 0.31218605211021105,
+        "median_ape": 0.1994937654927857,
+        "within_25pct": 0.6337209302325582,
+        "r2_log": -0.21595661861882687,
+        "spearman": 0.6997615936495933,
         "n": 172
       },
       "Transfermarkt value": {
@@ -171,5 +171,5 @@
   },
   "asof": "2026-06-13",
   "current_players": 14858,
-  "runtime_sec": 665.2
+  "runtime_sec": 627.9
 }

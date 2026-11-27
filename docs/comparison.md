@@ -15,11 +15,11 @@ matches unscored; promoted teams start at the bottom quarter's average rating):
 
 | Model | Source | RPS ↓ | Log-loss ↓ | Paired ΔRPS vs Dixon-Coles (z) |
 |---|---|---|---|---|
-| **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0082 (z = −15.4) |
-| Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0081 (z = −16.0) |
-| SportPulse Fundamentals, no odds (with club squad values) | this repo | 0.2077 | 1.0150 | −0.0040 (z = −8.7) |
+| **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0088 (z = −15.8) |
+| Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0087 (z = −16.4) |
+| SportPulse Fundamentals, no odds (with club squad values) | this repo | 0.2077 | 1.0150 | −0.0046 (z = −9.4) |
 | Logistic on pi-rating goal difference + Elo | pi-ratings from Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
-| Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2117 | 1.0317 | — |
+| Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2123 | 1.0334 | — |
 
 (The pi-rating row comes from the full 17,054-match leaderboard in [results](results.md).) Without odds, SportPulse beats the classic
 Dixon-Coles model by a wide, significant margin. With odds, it edges the market (paired ΔRPS −0.00011,
@@ -62,7 +62,7 @@ tied zeros.
 
 **Transfer fees.** Transfermarkt's crowd-sourced market value is the standard reference for fees. On
 2,434 paid transfers from July 2025 to July 2026 (those with an earlier Transfermarkt valuation), the SportPulse fee model has median error
-39% against 50% for the Transfermarkt value (R² log 0.80 vs 0.67).
+41% against 50% for the Transfermarkt value (R² log 0.77 vs 0.67).
 
 **Action values.** VAEP is re-implemented from Decroos et al. (KDD 2019) and compared, on the same 2022–24
 hold-out actions, against expected threat (Singh's method, with this repo's 16 × 12 grid, logistically calibrated on

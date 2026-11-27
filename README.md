@@ -62,12 +62,12 @@ Scored on data held out from training. Lower is better except AUC. Full tables, 
 | Task | Metric | SportPulse | Reference | Reference score |
 |---|---|---|---|---|
 | Club results, with odds | RPS ↓ | **0.2033** | Bookmaker (Shin) | 0.2035 |
-| Club results, no odds | RPS ↓ | **0.2075** | Elo | 0.2103 |
+| Club results, no odds | RPS ↓ | **0.2076** | Elo | 0.2103 |
 | National teams | RPS ↓ | **0.1657** | World Football Elo | 0.1695 |
 | National teams, World Cup 2026 | RPS ↓ | **0.1548** | World Football Elo | 0.1598 |
 | Expected goals (2022–24 hold-out) | log-loss ↓ | **0.2525** | StatsBomb xG | 0.2563 |
 | Action values (VAEP) | AUC ↑ | **0.835** | Expected threat (xT) | 0.790 |
-| Transfer fees | median error ↓ | **39%** | Transfermarkt value | 50% |
+| Transfer fees | median error ↓ | **41%** | Transfermarkt value | 50% |
 | Next Transfermarkt valuation | median error ↓ | **12.9%** | Last value carried forward | 16.7% |
 | Fantasy Premier League points | MAE ↓ | **0.874** | FPL's own xP | 1.092 |
 <!-- RESULTS:END -->

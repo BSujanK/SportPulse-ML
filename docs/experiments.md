@@ -29,6 +29,7 @@ used in this decision too, headline test numbers are slightly optimistic.
 | Over/under 2.5 | Booster initialised from the market price | better | worse | rejected |
 | Transfer fees | Squared-error loss, monotone value constraint, buyer-premium features, smaller trees | worse | mixed | rejected (Huber kept) |
 | Transfer fees | Optuna-tuned LightGBM (40 trials) | 0.5486 → 0.5465 MAE log | 0.5375 → 0.5414 | rejected |
+| Transfer fees | Each club's league at the time of the transfer (it had been the 2026 league, a leak) | — | 0.537 → 0.569 MAE log; median error 39% → 41% | adopted (removes a leak) |
 | Next valuation | Optuna-tuned LightGBM (20 trials) | 0.1967 → 0.1948 MAE log | 0.1998 → 0.1971; median error 13.3% → 12.9% | adopted |
 | Fair value | Optuna-tuned LightGBM (20 trials) | 0.5474 → 0.5517 | 0.5874 → 0.5954 | rejected |
 | Fair value | Career and 730-day top-5-league, UEFA and national-team minutes, and top-5-league and UEFA goal involvements | 0.5474 → 0.5343 MAE log | 0.5874 → 0.5821; median error 43.7% → 42.5% | adopted |

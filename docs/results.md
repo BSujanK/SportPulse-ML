@@ -11,7 +11,7 @@ Every number below is measured on data the models never saw during training, tun
 | **SportPulse Market-Residual (production)** | **0.2033** | 1.0005 | 0.5984 | 50.7% | 1.17% |
 | Bookmaker market (Shin) | 0.2035 | 1.0008 | 0.5986 | 50.5% | 1.11% |
 | Poisson-DC goals model | 0.2038 | 1.0024 | 0.5995 | 50.6% | 1.57% |
-| SportPulse Fundamentals (no odds) | 0.2075 | 1.0139 | 0.6075 | 49.2% | 1.17% |
+| SportPulse Fundamentals (no odds) | 0.2076 | 1.0142 | 0.6077 | 49.3% | 1.17% |
 | Pi-rating + Elo logistic | 0.2097 | 1.0206 | 0.6119 | 48.9% | 1.03% |
 | Elo logistic | 0.2103 | 1.0223 | 0.6132 | 48.8% | 1.06% |
 | Base rates (train prior) | 0.2283 | 1.0748 | 0.6503 | 43.6% | 0.78% |
@@ -73,7 +73,7 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 
 | Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |
 |---|---|---|---|---|---|
-| Transfer fee | **SportPulse fee model (LightGBM)** | **39.4%** | 0.537 | 0.800 | 33% |
+| Transfer fee | **SportPulse fee model (LightGBM)** | **41.4%** | 0.569 | 0.767 | 32% |
 | Transfer fee | Transfermarkt value, calibrated | 45.8% | 0.666 | 0.683 | 30% |
 | Transfer fee | Transfermarkt value | 49.9% | 0.665 | 0.674 | 31% |
 | Next valuation | **SportPulse forecast (LightGBM)** | **12.9%** | 0.197 | 0.964 | 74% |
@@ -82,7 +82,7 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 | Fair value, no player history | **SportPulse fair value (LightGBM)** | **42.5%** | 0.582 | 0.764 | 31% |
 | Fair value, no player history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
 
-Direction of the next valuation change (moves over 5%): 80.1% of 30,288. Fees of €20M or more (172 moves): median error 19% vs 23% for the Transfermarkt value.
+Direction of the next valuation change (moves over 5%): 80.1% of 30,288. Fees of €20M or more (172 moves): median error 20% vs 23% for the Transfermarkt value.
 
 ## VAEP action values (8.1M actions; trained before 2022-07-01, tested on 572,730 actions from the 2022–24 hold-out competitions)
 
