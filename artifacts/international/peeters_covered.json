@@ -1,0 +1,14 @@
+{
+  "competitive, both squads covered": {
+    "n": 1413,
+    "SportPulse International (LightGBM)": 0.1647154474448394,
+    "World Football Elo (standard, logistic)": 0.16857885440443868,
+    "Squad value logistic (Peeters 2018)": 0.1808004501687503
+  },
+  "all test, both squads covered": {
+    "n": 1832,
+    "SportPulse International (LightGBM)": 0.16505941759053774,
+    "World Football Elo (standard, logistic)": 0.1692911002114768,
+    "Squad value logistic (Peeters 2018)": 0.1781313122755498
+  }
+}

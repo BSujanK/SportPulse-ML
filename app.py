@@ -58,7 +58,7 @@ with st.container(key=f"page_{(nav.url_path or 'hub').replace('-', '_')}"):
 st.markdown(
     f'<div class="hf-footer"><span><b>SportPulse ML</b> · football forecasting and analysis on real data · MIT</span>'
     '<span>Data: football-data.co.uk &amp; clubelo (xgabora) · StatsBomb open data · Fantasy Premier League (vaastav) · '
-    'international results (martj42) · EA Sports FIFA (sofifa)</span></div>'
+    'international results (martj42) · Transfermarkt (dcaribou) · EA Sports FIFA (sofifa)</span></div>'
     f'<style>.hf-footer{{margin-top:48px;padding:18px 0;border-top:1px solid {ui.BORDER};color:{ui.DIM};'
     'font-size:.8rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}'
     '.hf-footer b{color:#ccc}</style>',

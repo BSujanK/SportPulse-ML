@@ -15,11 +15,11 @@
   },
   "leaderboard": [
     {
-      "rps": 0.16760748531266773,
-      "log_loss": 0.8561369944488875,
-      "brier": 0.5018640694310432,
-      "accuracy": 0.6166158536585366,
-      "ece": 0.026246978258294584,
+      "rps": 0.16562447617860043,
+      "log_loss": 0.8494796113982017,
+      "brier": 0.49785832576778977,
+      "accuracy": 0.6154725609756098,
+      "ece": 0.02419329280407093,
       "n": 2624,
       "model": "SportPulse International (LightGBM)"
     },
@@ -33,6 +33,15 @@
       "model": "World Football Elo (standard, logistic)"
     },
     {
+      "rps": 0.1945394754321977,
+      "log_loss": 0.9421655855562711,
+      "brier": 0.5595716004262271,
+      "accuracy": 0.5529725609756098,
+      "ece": 0.0416375669871575,
+      "n": 2624,
+      "model": "Squad value logistic (Peeters 2018)"
+    },
+    {
       "rps": 0.22957459676042077,
       "log_loss": 1.0490965552875664,
       "brier": 0.632696409201936,
@@ -44,11 +53,11 @@
   ],
   "competitive": [
     {
-      "rps": 0.16719907908985893,
-      "log_loss": 0.8496556259418904,
-      "brier": 0.49738821542289813,
-      "accuracy": 0.6207565470417071,
-      "ece": 0.026377950989632307,
+      "rps": 0.16565599783149068,
+      "log_loss": 0.8442495146175213,
+      "brier": 0.4942156766735219,
+      "accuracy": 0.6178467507274491,
+      "ece": 0.024587280500502417,
       "n": 2062,
       "model": "SportPulse International (LightGBM)"
     },
@@ -62,6 +71,15 @@
       "model": "World Football Elo (standard, logistic)"
     },
     {
+      "rps": 0.19869007946568373,
+      "log_loss": 0.9499331492538837,
+      "brier": 0.56481145694739,
+      "accuracy": 0.5484966052376333,
+      "ece": 0.04485864744756246,
+      "n": 2062,
+      "model": "Squad value logistic (Peeters 2018)"
+    },
+    {
       "rps": 0.232917653998958,
       "log_loss": 1.0533657369945544,
       "brier": 0.6361496078637019,
@@ -73,6 +91,15 @@
   ],
   "world_cup_2026": [
     {
+      "rps": 0.15483633542005792,
+      "log_loss": 0.8373170955859488,
+      "brier": 0.4895226595803121,
+      "accuracy": 0.6538461538461539,
+      "ece": 0.10395057791812919,
+      "n": 104,
+      "model": "SportPulse International (LightGBM)"
+    },
+    {
       "rps": 0.15982205592029303,
       "log_loss": 0.8472142450219605,
       "brier": 0.4988007099482138,
@@ -82,13 +109,13 @@
       "model": "World Football Elo (standard, logistic)"
     },
     {
-      "rps": 0.16156344571653977,
-      "log_loss": 0.8615269839503396,
-      "brier": 0.5045757635334093,
-      "accuracy": 0.6538461538461539,
-      "ece": 0.1128225553292621,
+      "rps": 0.17198018405564552,
+      "log_loss": 0.8882691731909885,
+      "brier": 0.52237648862849,
+      "accuracy": 0.6346153846153846,
+      "ece": 0.10159634936145488,
       "n": 104,
-      "model": "SportPulse International (LightGBM)"
+      "model": "Squad value logistic (Peeters 2018)"
     },
     {
       "rps": 0.22948998391011405,
@@ -100,7 +127,7 @@
       "model": "Base rates"
     }
   ],
-  "iters": 555,
-  "temperature": 1.087037448028027,
-  "runtime_sec": 30.5
+  "iters": 613,
+  "temperature": 1.1123432825995527,
+  "runtime_sec": 46.6
 }

@@ -91,8 +91,9 @@ P(60+ min) AUC 0.947 · P(goal) AUC 0.887 · P(assist) AUC 0.847.
 
 | Model | Competitive RPS ↓ | Accuracy | World Cup 2026 RPS ↓ |
 |---|---|---|---|
-| SportPulse International (LightGBM) | 0.1672 | 62.1% | 0.1616 |
+| SportPulse International (LightGBM) | 0.1657 | 61.8% | 0.1548 |
 | World Football Elo (standard, logistic) | 0.1695 | 61.3% | 0.1598 |
+| Squad value logistic (Peeters 2018) | 0.1987 | 54.8% | 0.1720 |
 | Base rates | 0.2329 | 46.9% | 0.2295 |
 
 ### Expected goals, StatsBomb open data (3,961 matches, 99,746 non-penalty shots)
@@ -167,8 +168,18 @@ benchmark Hudl-StatsBomb's commercial xG, the industry reference model. SportPul
 StatsBomb xG on the same shots: on the unseen 2022-24 tournaments it has log-loss 0.2514 vs 0.2563 and AUC 0.813 vs
 0.803, and under 5-fold CV 0.2606 vs 0.2660.
 
-**National teams.** The reference is the [World Football Elo](https://www.eloratings.net/about) rating, re-implemented
-with its published K-factors. SportPulse has competitive-match RPS 0.1672 vs 0.1695 (accuracy 62.1% vs 61.3%).
+**National teams.** Two references, both re-implemented on the same matches:
+- **World Football Elo**, with its [published K-factors](https://www.eloratings.net/about). SportPulse has
+  competitive-match RPS 0.1657 vs 0.1695 (accuracy 61.8% vs 61.3%), and 0.1548 vs 0.1598 at the 2026 World Cup.
+- **Transfermarkt squad values**, after [Peeters (2018), *Int. J. Forecasting* 34(1)](https://ideas.repec.org/a/eee/intfor/v34y2018i1p17-29.html),
+  who found crowd valuations forecast internationals better than Elo. On the 1,413 competitive test matches
+  where both squads are covered, a squad-value logistic scores 0.1808, behind Elo
+  (0.1686). So the finding does not replicate here on its own; this data only
+  sees players at the dataset's clubs. Added to the ratings model, though, squad value is the largest single gain
+  (0.1647).
+- Squad values count only players whose club played covered games that season. This guards against look-ahead:
+  the source lists players who reached a covered league at any time up to 2026. Citizenship is the current record, so
+  nationality switchers are assigned their present country.
 
 **Fantasy points.** The reference is the official FPL expected-points (xP) forecast: MAE 0.998 vs 1.092, and the
 best-XI picks score 4.66 vs 3.41 points per player.
@@ -336,6 +347,9 @@ Every candidate is selected on a validation window and adopted only if the gain 
 | National teams | Optuna-tuned LightGBM | better | → 0.1673 | adopted (validation winner) |
 | National teams | 5-seed bagged ensemble | better | → 0.1672 | adopted |
 | National teams | Blend with Elo logistic | worse | flat | rejected |
+| National teams | Transfermarkt squad value (top-26 sum, top-11 mean), home minus away | better | 0.1672 → 0.1656; World Cup 2026 0.1616 → 0.1562 | superseded by the point-in-time version |
+| National teams | Same, counting only players at clubs covered that season (no look-ahead from the source's player list) | better (0.16646 → 0.16518) | 0.1672 → 0.1657; World Cup 2026 → 0.1548 | adopted |
+| National teams | Squad-value levels and player counts as extra features | worse | — | rejected |
 | Club matches | ClubElo cross-league ratings (verified pre-match) | flat | flat | rejected |
 | Club matches | 5-seed bagged ensemble | flat | flat | rejected |
 | Club matches | Log-linear blend with the Poisson-Dixon-Coles model | better | worse | rejected |
