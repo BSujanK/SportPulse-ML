@@ -1,16 +1,3 @@
----
-title: SportPulse ML
-emoji: ⚽
-colorFrom: yellow
-colorTo: red
-sdk: streamlit
-sdk_version: 1.50.0
-app_file: app.py
-pinned: false
-license: mit
-short_description: Football forecasting on real data, benchmarked end to end
----
-
 <p align="center">
   <img src="webapp/assets/mark.svg" alt="SportPulse ML logo" width="80">
 </p>
@@ -50,7 +37,7 @@ chronological, and every claim below links to the file it comes from.
   values for every pass, carry, shot and tackle.
 - **Players.** Transfer fees predicted better than Transfermarkt's own value, a valuation estimate, a
   performance-based fair value, and next-gameweek Fantasy Premier League points.
-- **An app.** Twelve pages in a Hugging Face–style interface: forecasts, scouting reports, match reports,
+- **An app.** Twelve pages interface: forecasts, scouting reports, match reports,
   valuations and the full evaluation.
 
 ## Results
@@ -166,7 +153,7 @@ New model changes should report their validation and test effect in [docs/experi
 
 ```bibtex
 @software{sportpulse_ml,
-  author = {Kumar, B Sujan},
+  author = {B Sujan Kumar},
   title  = {SportPulse ML: football forecasting and analysis on real data},
   url    = {https://github.com/BSujanK/SportPulse-ML},
   year   = {2026}
