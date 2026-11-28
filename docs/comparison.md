@@ -11,15 +11,15 @@ the published methods are re-implemented and scored on the SportPulse test windo
 **Club 1X2, same 16,843 test matches** (`python scripts/benchmark_dixon_coles.py`; Dixon-Coles refit monthly per
 league on the previous 1,095 days, time decay ξ chosen on the 2023-24 validation season, ρ fitted in a second step
 after the Poisson rates; league-months with under 200 history matches are skipped, which leaves 211 of the 17,054
-matches unscored; promoted teams start at the bottom quarter's average rating):
+matches unscored; promoted teams start at the average rating of the weakest half, chosen on the validation season along with ξ, to give the published model its best shot):
 
 | Model | Source | RPS ↓ | Log-loss ↓ | Paired ΔRPS vs Dixon-Coles (z) |
 |---|---|---|---|---|
-| **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0088 (z = −15.8) |
-| Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0087 (z = −16.4) |
-| SportPulse Fundamentals, no odds (with club squad values) | this repo | 0.2077 | 1.0150 | −0.0046 (z = −9.4) |
+| **SportPulse Market-Residual** | this repo | **0.2035** | **1.0013** | −0.0085 (z = −15.7) |
+| Bookmaker market, Shin de-vigged | Štrumbelj 2014, *Int. J. Forecasting* | 0.2036 | 1.0016 | −0.0084 (z = −16.2) |
+| SportPulse Fundamentals, no odds (with club squad values) | this repo | 0.2077 | 1.0150 | −0.0043 (z = −9.1) |
 | Logistic on pi-rating goal difference + Elo | pi-ratings from Constantinou & Fenton 2013, *JQAS* | 0.2097 | 1.0206 | — |
-| Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2123 | 1.0334 | — |
+| Dixon & Coles (1997) | Dixon & Coles 1997, *JRSS C* | 0.2120 | 1.0324 | — |
 
 (The pi-rating row comes from the full 17,054-match leaderboard in [results](results.md).) Without odds, SportPulse beats the classic
 Dixon-Coles model by a wide, significant margin. With odds, it edges the market (paired ΔRPS −0.00011,

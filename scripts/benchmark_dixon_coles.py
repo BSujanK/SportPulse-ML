@@ -83,7 +83,7 @@ def outcome_probs(lh, la, rho):
     return np.c_[(S * (i > j)).sum((1, 2)), (S * (i == j)).sum((1, 2)), (S * (i < j)).sum((1, 2))]
 
 
-def rolling_predictions(m: pd.DataFrame, start, end, xi) -> np.ndarray:
+def rolling_predictions(m: pd.DataFrame, start, end, xi, promoted: float = 0.25) -> np.ndarray:
     P = np.full((len(m), 3), np.nan)
     months = pd.date_range(pd.Timestamp(start), pd.Timestamp(end) + pd.offsets.MonthBegin(1), freq="MS")
     for div, g in m.groupby("division", sort=False):
@@ -101,7 +101,7 @@ def rolling_predictions(m: pd.DataFrame, start, end, xi) -> np.ndarray:
                                           hist.hg.to_numpy(float), hist.ag.to_numpy(float), w, n)
             # Unseen (promoted) teams: the average promoted side is weaker than average, so use the mean
             # rating of the bottom quarter. Strength is att + dfn: dfn lowers the opponent's scoring rate.
-            q = np.argsort(att + dfn)[: max(n // 4, 1)]
+            q = np.argsort(att + dfn)[: max(int(n * promoted), 1)]
             a_new, d_new = att[q].mean(), dfn[q].mean()
             hi, ai = teams.get_indexer(tgt.home), teams.get_indexer(tgt.away)
             ah = np.where(hi >= 0, att[hi], a_new); dh = np.where(hi >= 0, dfn[hi], d_new)
@@ -134,16 +134,19 @@ def main():
     valid = ((d >= config.TRAIN_END) & (d < config.VALID_END)).to_numpy()
     test = (d >= config.VALID_END).to_numpy()
 
+    # Give the published model its best shot: the time decay and the promoted-team prior (mean rating of the
+    # weakest quarter, half, or the whole league) are both chosen on the validation season.
     best = None
     for xi in (0.0010, 0.0019, 0.0030, 0.0045):        # Dixon & Coles' own choice is ~0.0019 per day
-        P = rolling_predictions(m, config.TRAIN_END, pd.Timestamp(config.VALID_END) - pd.Timedelta(days=1), xi)
-        mk = valid & ok & np.isfinite(P).all(1)
-        s = M.rps(P[mk], y[mk])
-        print(f"xi={xi:.4f}  validation RPS {s:.5f}  (n={mk.sum()})", flush=True)
-        if best is None or s < best[1]:
-            best = (xi, s)
-    xi = best[0]
-    P = rolling_predictions(m, config.VALID_END, d.max(), xi)
+        for promoted in (0.25, 0.5, 1.0):
+            P = rolling_predictions(m, config.TRAIN_END, pd.Timestamp(config.VALID_END) - pd.Timedelta(days=1), xi, promoted)
+            mk = valid & ok & np.isfinite(P).all(1)
+            sc = M.rps(P[mk], y[mk])
+            print(f"xi={xi:.4f} promoted={promoted:.2f}  validation RPS {sc:.5f}", flush=True)
+            if best is None or sc < best[2]:
+                best = (xi, promoted, sc)
+    xi, promoted = best[0], best[1]
+    P = rolling_predictions(m, config.VALID_END, d.max(), xi, promoted)
     tm = test & ok
     cover = tm & np.isfinite(P).all(1)
     # SportPulse out-of-sample test predictions (written by the match pipeline before the production refit)
@@ -158,7 +161,7 @@ def main():
               "SportPulse Fundamentals (no odds)": P_fund, "Dixon & Coles (1997), monthly refit": P}
     per_match = {k: _rps_rows(v[cover], yc) for k, v in models.items()}
     ref = per_match["Dixon & Coles (1997), monthly refit"]
-    res = {"xi": xi, "n_test": int(tm.sum()), "n_covered": int(cover.sum()),
+    res = {"xi": xi, "promoted_prior": promoted, "n_test": int(tm.sum()), "n_covered": int(cover.sum()),
            "models": {k: M.summary(v[cover], yc) for k, v in models.items()},
            "paired_vs_dixon_coles": {k: _paired(v, ref) for k, v in per_match.items() if v is not ref},
            "paired_production_vs_market": _paired(per_match["SportPulse Market-Residual (production)"],
