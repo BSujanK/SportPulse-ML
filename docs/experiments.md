@@ -44,6 +44,7 @@ used in this decision too, headline test numbers are slightly optimistic.
 | PL players | LambdaRank head per gameweek (for ordering players), alone or rank-blended | within-GW Spearman 0.574 → 0.553 / 0.567 | 0.561 → 0.542 / 0.555 | rejected: the gap to FPL xP (0.720) is team news, not the objective |
 | Player development | Optuna-tuned LightGBM | flat | 1.591 → 1.593 | rejected |
 | Club matches | Recency-weighted training (half-life 10 / 6 / 3 years) | flat | worse | rejected |
+| Club matches | Transfer spending in and out over the previous 120 and 365 days (no-odds model) | 0.20758 → 0.20758 RPS | 0.20757 → 0.20749 | rejected: no validation gain |
 | Club matches | Asian-handicap price as a market feature | worse | 0.20335 → 0.20334 | rejected |
 | Club matches | Asian-handicap price + best-vs-average odds gaps | better | 0.20335 → 0.20342 | rejected |
 | Club matches, no odds | Transfermarkt club squad value (point-in-time, home minus away) | 0.20788 → 0.20758 | 0.20776 → 0.20757 | adopted (second fundamentals booster) |
