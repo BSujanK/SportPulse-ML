@@ -79,8 +79,8 @@ Competitive matches where both squads have Transfermarkt coverage (n = 1,413): S
 | Next valuation | **SportPulse forecast (LightGBM)** | **12.9%** | 0.197 | 0.964 | 74% |
 | Next valuation | Persistence + age trend | 18.4% | 0.234 | 0.951 | 68% |
 | Next valuation | Persistence (last Transfermarkt value) | 16.7% | 0.232 | 0.942 | 67% |
-| Fair value, no player history | **SportPulse fair value (LightGBM)** | **42.5%** | 0.582 | 0.764 | 31% |
-| Fair value, no player history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
+| Fair value, no valuation history | **SportPulse fair value (LightGBM)** | **38.6%** | 0.530 | 0.799 | 34% |
+| Fair value, no valuation history | League × position × age median | 69.2% | 1.086 | 0.212 | 17% |
 
 Direction of the next valuation change (moves over 5%): 80.1% of 30,288. Fees of €20M or more (172 moves): median error 20% vs 23% for the Transfermarkt value.
 

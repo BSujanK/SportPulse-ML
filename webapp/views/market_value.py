@@ -29,7 +29,7 @@ ui.kpi_row([
            f"persistence {n_pe['median_ape'] * 100:.1f}%", "good"),
     ui.kpi("Direction of next change", f"{fc['direction_accuracy'] * 100:.0f}", "%",
            f"{fc['direction_n']:,} moves over 5%"),
-    ui.kpi("Fair value R² (no player history)", f"{v_sp['r2_log']:.2f}", "", "performance, club, league, age"),
+    ui.kpi("Fair value R² (no valuation history)", f"{v_sp['r2_log']:.2f}", "", "performance, past fees, club, league, age"),
 ])
 
 t_player, t_under, t_fees, t_card = st.tabs([":material/person: Player valuation", ":material/savings: Undervalued finder",
@@ -82,8 +82,9 @@ with t_player:
                     unsafe_allow_html=True)
         ui.note("<b>Model estimate today</b> is what Transfermarkt's valuation would be on the snapshot date, from "
                 "everything known by then; it is evaluated on Transfermarkt's later updates, knowing their dates. "
-                "<b>Performance fair value</b> ignores this player's Transfermarkt history and prices him from "
-                "minutes, output, competition level, club and age alone, so a large gap flags a player the market "
+                "<b>Performance fair value</b> ignores this player's Transfermarkt valuation history and prices him from "
+                "minutes, output, competition level, fees paid for him before, club and age, so a large gap flags a "
+                "player the market "
                 "may be mispricing.")
 
 with t_under:

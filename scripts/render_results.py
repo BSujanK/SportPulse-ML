@@ -101,7 +101,7 @@ if mvp.exists():
     lines += ["", f"### Transfermarkt valuation models ({md['valuations']:,} valuations of {md['players']:,} players; "
               "test: valuations 2025-07 → 2026-06, fees 2025-07 → 2026-07)", "",
               "| Task | Model | Median error ↓ | MAE log ↓ | R² log ↑ | Within ±25% ↑ |", "|---|---|---|---|---|---|"]
-    for task, lbl in (("fees", "Transfer fee"), ("forecast", "Next valuation"), ("fair_value", "Fair value, no player history")):
+    for task, lbl in (("fees", "Transfer fee"), ("forecast", "Next valuation"), ("fair_value", "Fair value, no valuation history")):
         for r in mv[task]["leaderboard"]:
             b = "**" if r["model"].startswith("SportPulse") else ""
             lines.append(f"| {lbl} | {b}{r['model']}{b} | {b}{r['median_ape'] * 100:.1f}%{b} | {r['mae_log']:.3f} | "
