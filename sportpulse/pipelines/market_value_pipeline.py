@@ -41,6 +41,30 @@ def competition_history(A: T.AsOf, pid, dates) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
+# The player's own transfer-fee history, strictly before each date: last and highest fee paid (log), years since
+# the last one, and the number of paid moves. Fair value only (validation 0.5343 -> 0.4872, test 0.5821 -> 0.5298).
+FEE_HISTORY = ["fee_last", "fee_max", "fee_years", "fee_moves"]
+
+
+def fee_history(pid, dates) -> pd.DataFrame:
+    tf = T.table("transfers")
+    tf = tf[(tf.transfer_fee > 0) & tf.transfer_date.notna()]
+    key = tf.player_id.to_numpy(np.int64) * T.SPAN + T._day(tf.transfer_date.reset_index(drop=True))
+    lf = np.log(tf.transfer_fee.to_numpy(float))
+    o = np.argsort(key, kind="stable")
+    key, lf = key[o], lf[o]
+    cummax = pd.Series(lf).groupby(key // T.SPAN).cummax().to_numpy()
+    first = np.searchsorted(key, (key // T.SPAN) * T.SPAN, "left")
+    pid = np.asarray(pid, np.int64)
+    day = T._day(pd.Series(pd.to_datetime(dates)).reset_index(drop=True))
+    i = np.searchsorted(key, pid * T.SPAN + day, "left") - 1
+    j = np.maximum(i, 0)
+    ok = (i >= 0) & (key[j] // T.SPAN == pid)
+    return pd.DataFrame({"fee_last": np.where(ok, lf[j], np.nan), "fee_max": np.where(ok, cummax[j], np.nan),
+                         "fee_years": np.where(ok, (day - key[j] % T.SPAN) / 365.25, np.nan),
+                         "fee_moves": np.where(ok, i - first[j] + 1, 0).astype(float)})
+
+
 def _splits(dates: pd.Series):
     d = pd.to_datetime(dates)
     return (((d >= START) & (d < TRAIN_END)).to_numpy(), ((d >= TRAIN_END) & (d < VALID_END)).to_numpy(),
@@ -58,6 +82,7 @@ def valuation_frame(A: T.AsOf) -> pd.DataFrame:
                 comp=v.player_club_domestic_competition_id)
     F["league"] = v.player_club_domestic_competition_id.astype("string").to_numpy()
     F[HISTORY] = competition_history(A, v.player_id.to_numpy(), v.date).to_numpy()
+    F[FEE_HISTORY] = fee_history(v.player_id.to_numpy(), v.date).to_numpy()
     F["y"] = np.log(v.market_value_in_eur.clip(lower=10_000).to_numpy(float))
     F["date"], F["player_id"] = v.date.to_numpy(), v.player_id.to_numpy()
     return F
@@ -89,7 +114,7 @@ def run() -> dict:
     A = T.AsOf()
     log.info("Valuation frame")
     V = valuation_frame(A)
-    num = [c for c in V.columns if c not in CAT_COLS + HISTORY + ["y", "date", "player_id"]]
+    num = [c for c in V.columns if c not in CAT_COLS + HISTORY + FEE_HISTORY + ["y", "date", "player_id"]]
     tr, va, te = _splits(V["date"])
     res = {"data": {"valuations": int(len(V)), "players": int(V.player_id.nunique()),
                     "first": str(pd.Timestamp(V.date.min()).date()), "last": str(pd.Timestamp(V.date.max()).date()),
@@ -116,7 +141,7 @@ def run() -> dict:
     log.info("forecast %s", res["forecast"]["leaderboard"][0])
 
     # ── 2. Fair value, without the player's valuation history ───────────────────────────
-    perf = [c for c in num if c not in LAGS] + HISTORY
+    perf = [c for c in num if c not in LAGS] + HISTORY + FEE_HISTORY
     fv = ValueBooster(perf, CAT_COLS).fit(V, V.y, tr, va)
     p_fv = fv.predict(V)
     key = pd.DataFrame({"l": V.league.fillna("NA").astype(str), "p": V.position.fillna("NA").astype(str), "a": band})
@@ -180,6 +205,7 @@ def run() -> dict:
                 comp=cur.current_club_domestic_competition_id)
     C["league"] = cur.current_club_domestic_competition_id.astype("string").to_numpy()
     C[HISTORY] = competition_history(A, cur.player_id.to_numpy(), [asof] * len(cur)).to_numpy()
+    C[FEE_HISTORY] = fee_history(cur.player_id.to_numpy(), [asof] * len(cur)).to_numpy()
     covered = (C["club_games_365"] >= 15).to_numpy()      # clubs whose games are in the dataset
     cur, C = cur[covered].reset_index(drop=True), C[covered].reset_index(drop=True)
     out = pd.DataFrame({

@@ -138,9 +138,10 @@ with the same lower-case alphanumeric key becomes the most recent one ("Nottm Fo
 * **Next valuation.** LightGBM learns the change from the last value; persistence is the baseline. All three
   Transfermarkt models use Huber loss on log values.
 * **Fair value.** The same features without this player's valuation history, plus career and 730-day top-5-league,
-  UEFA and national-team minutes, and top-5-league and UEFA goal involvements. It still uses club and league value
-  levels, which are averages of Transfermarkt valuations (including the player's own earlier ones), so it is a
-  performance-based value, not one with no Transfermarkt input at all.
+  UEFA and national-team minutes, top-5-league and UEFA goal involvements, and the player's own transfer-fee
+  history before the date (last and highest fee, years since the last paid move, number of paid moves). It still
+  uses club and league value levels, which are averages of Transfermarkt valuations (including the player's own
+  earlier ones), and past fees, so it is a performance-based value, not one with no market input at all.
 * **Transfer fees.** Seller and buyer strength and league level are added; the Transfermarkt value is the baseline.
 * Chronological split: train 2013-07 → 2024-06, validate 2024-07 → 2025-06, test 2025-07 → latest (valuations to
   2026-06-12, fees to 2026-07).
